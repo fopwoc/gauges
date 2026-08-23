@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "scannedAt": "2026-08-17",
+  "projectRoot": "console",
+  "findings": {
+    "fontStack": "Inter preference with system-ui and Apple system fallbacks; no external font package",
+    "palette": "Neutral zinc-like light and dark palettes with red reserved for danger and offline states",
+    "motion": "Motion-cut; no motion library, only Svelte transitions and CSS state transitions",
+    "spacing": "Ad hoc rem spacing; no named spacing token scale",
+    "framework": "SvelteKit with Svelte, UnoCSS reset, and uPlot"
+  },
+  "preserve": [
+    "automatic system light and dark modes",
+    "neutral grayscale product character",
+    "existing routes, component ownership, data behavior, and information architecture"
+  ]
+}

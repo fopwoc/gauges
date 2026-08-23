@@ -1,0 +1,70 @@
+name: gauges-local
+
+# Self-contained development stack. Credentials here are intentionally fixed
+# and ports bind only to loopback; do not use this file as a LAN deployment.
+services:
+  gauges:
+    build:
+      context: .
+    environment:
+      GAUGES_HOST: 0.0.0.0
+      GAUGES_PORT: 8080
+      GAUGES_DATABASE_PATH: /data/gauges.redb
+      GAUGES_DEVICES_JSON: '[{"id":"local-probe","name":"Local Docker Probe","token":"local-development-token"},{"id":"local-probe-2","name":"Local Docker Probe 2","token":"local-development-token-2"}]'
+      GAUGES_CLEANUP_INTERVAL_SECONDS: "${GAUGES_CLEANUP_INTERVAL_SECONDS:-60}"
+      GAUGES_ONLINE_THRESHOLD_SECONDS: "${GAUGES_ONLINE_THRESHOLD_SECONDS:-15}"
+      GAUGES_MAX_INGEST_BATCH_SIZE: "1000"
+    ports:
+      - "127.0.0.1:${GAUGES_LOCAL_PORT:-8080}:8080"
+    volumes:
+      - local-gauges-data:/data
+
+  probe:
+    build:
+      context: .
+      dockerfile: probe/Dockerfile
+    depends_on:
+      gauges:
+        condition: service_healthy
+    environment:
+      GAUGES_DEVICE_ID: local-probe
+      GAUGES_TOKEN: local-development-token
+      GAUGES_HUB_URL: http://gauges:8080
+      GAUGES_DATABASE_PATH: /var/lib/gauges/probe.redb
+      GAUGES_COLLECTION_INTERVAL_SECONDS: "${GAUGES_LOCAL_PROBE_COLLECTION_INTERVAL_SECONDS:-2}"
+      GAUGES_RETRY_INTERVAL_SECONDS: "${GAUGES_LOCAL_RETRY_INTERVAL_SECONDS:-5}"
+      GAUGES_REQUEST_TIMEOUT_SECONDS: "${GAUGES_LOCAL_REQUEST_TIMEOUT_SECONDS:-5}"
+      GAUGES_RETENTION_HOURS: "${GAUGES_LOCAL_PROBE_RETENTION_HOURS:-24}"
+      # Docker interfaces are virtual by definition. Include eth0 here so the
+      # local dashboard exercises network metrics as well as the other fields.
+      GAUGES_PHYSICAL_NETWORKS_ONLY: "false"
+    volumes:
+      - local-probe-data:/var/lib/gauges
+
+  # Optional second probe for exercising the multi-machine accordion locally:
+  # docker compose -f compose.local.yaml --profile multi up --build
+  probe-2:
+    profiles: [multi]
+    build:
+      context: .
+      dockerfile: probe/Dockerfile
+    depends_on:
+      gauges:
+        condition: service_healthy
+    environment:
+      GAUGES_DEVICE_ID: local-probe-2
+      GAUGES_TOKEN: local-development-token-2
+      GAUGES_HUB_URL: http://gauges:8080
+      GAUGES_DATABASE_PATH: /var/lib/gauges/probe.redb
+      GAUGES_COLLECTION_INTERVAL_SECONDS: "${GAUGES_LOCAL_PROBE_2_COLLECTION_INTERVAL_SECONDS:-2}"
+      GAUGES_RETRY_INTERVAL_SECONDS: "${GAUGES_LOCAL_RETRY_INTERVAL_SECONDS:-5}"
+      GAUGES_REQUEST_TIMEOUT_SECONDS: "${GAUGES_LOCAL_REQUEST_TIMEOUT_SECONDS:-5}"
+      GAUGES_RETENTION_HOURS: "${GAUGES_LOCAL_PROBE_2_RETENTION_HOURS:-24}"
+      GAUGES_PHYSICAL_NETWORKS_ONLY: "false"
+    volumes:
+      - local-probe-2-data:/var/lib/gauges
+
+volumes:
+  local-gauges-data:
+  local-probe-data:
+  local-probe-2-data:

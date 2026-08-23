@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - docs/**
+      - LICENSE
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - docs/**
+      - LICENSE
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@1.90
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo build --locked --release -p gauges-probe
+      - run: cargo build --locked --release -p gauges-hub
+      - name: Package probe
+        run: tar -C target/release -czf gauges-probe-linux-x86_64.tar.gz gauges-probe
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gauges-probe-linux-x86_64
+          path: gauges-probe-linux-x86_64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+      - run: docker build -f probe/Dockerfile -t gauges-probe:test .
+      - run: docker build -t gauges:test .
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: console
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun test
+      - run: bun run build
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker compose config --quiet
+        env:
+          GAUGES_DEVICES_JSON: '[{"id":"ci","name":"CI device","token":"ci-token"}]'

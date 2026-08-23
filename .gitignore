@@ -1,0 +1,23 @@
+# Local configuration and data
+.env
+*.db
+*.db-shm
+*.db-wal
+*.redb
+data/
+
+# Generated builds
+target/
+**/build/
+!**/src/**/build/
+
+# SvelteKit / Bun
+console/node_modules/
+console/.svelte-kit/
+console/.vercel/
+console/package/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store

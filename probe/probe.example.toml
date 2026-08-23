@@ -1,0 +1,32 @@
+# This id must be present in the hub's GAUGES_DEVICES_JSON.
+device_id = "router"
+token = "replace-with-a-long-random-token"
+hub_url = "http://192.168.1.10:8080"
+
+database_path = "/var/lib/gauges/probe.redb"
+# Positive whole seconds. This cadence is sent to the hub so liveness and chart
+# gaps are interpreted independently for this machine.
+collection_interval_seconds = 10
+retry_interval_seconds = 60
+# Positive whole hours. This controls both the offline outbox and the history
+# retained for this machine by the hub; large values have proportional cost.
+retention_hours = 24
+upload_batch_size = 250
+request_timeout_seconds = 15
+
+# Linux-only network selection. A physical interface normally has a sysfs
+# `device` or `wireless` entry. Explicit includes override this heuristic,
+# which is useful for unusual OpenWrt DSA layouts.
+physical_networks_only = true
+network_include = []
+network_exclude = []
+
+# Report only proven local, block-backed filesystems by default. Exact mount
+# point includes override classification (useful for btrfs subvolumes); exact
+# excludes always win. Set false to restore sysinfo's broad mount list.
+local_filesystems_only = true
+disk_include = []
+disk_exclude = []
+
+sys_root = "/sys"
+proc_root = "/proc"

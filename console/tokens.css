@@ -1,0 +1,131 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5
+ * genre: modern-minimal · macrostructure: Index-First · theme: Cobalt
+ * tone: technical · anchor hue: electric cobalt · enrichment: none
+ * nav: N9 Edge-aligned minimal · footer: Ft2 Inline-rule single line
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --color-paper: oklch(98.5% 0.004 250);
+  --color-paper-2: oklch(96% 0.006 252);
+  --color-paper-3: oklch(92.5% 0.008 254);
+  --color-ink: oklch(22% 0.018 258);
+  --color-ink-2: oklch(34% 0.016 257);
+  --color-muted: oklch(47% 0.014 256);
+  --color-rule: oklch(84% 0.009 254);
+  --color-rule-strong: oklch(66% 0.014 256);
+  --color-accent: oklch(44% 0.2 256);
+  --color-accent-ink: oklch(98.5% 0.004 250);
+  --color-focus: oklch(45% 0.22 256);
+  --color-warning: oklch(54% 0.14 76);
+  --color-warning-ink: oklch(31% 0.07 76);
+  --color-warning-surface: oklch(94% 0.035 76);
+  --color-danger: oklch(44% 0.19 27);
+  --color-danger-ink: oklch(30% 0.11 27);
+  --color-danger-surface: oklch(95% 0.025 27);
+  --color-danger-rule: oklch(74% 0.095 27);
+  --color-chart-1: var(--color-accent);
+  --color-chart-2: var(--color-warning);
+  --color-chart-3: var(--color-muted);
+  --color-chart-1-fill: oklch(44% 0.2 256 / 0.12);
+  --color-chart-2-fill: oklch(54% 0.14 76 / 0.09);
+  --color-chart-3-fill: oklch(47% 0.014 256 / 0.07);
+  --color-chart-grid: var(--color-rule);
+  --color-shadow: oklch(22% 0.018 258 / 0.06);
+
+  --font-display: "Space Grotesk Variable", ui-sans-serif, sans-serif;
+  --font-body: "Inter Variable", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.953rem;
+  --text-2xl: 2.441rem;
+  --text-display: clamp(2.25rem, 5vw, 4rem);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --rule-hairline: 1px;
+  --rule-strong: 2px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-mark: 3px;
+  --shadow-raised: 0 1px 2px var(--color-shadow);
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-sticky: 200;
+
+  --page-gutter: clamp(var(--space-md), 4vw, var(--space-xl));
+  --page-width: 120rem;
+  --machine-card-min: 38rem;
+  --machine-card-max: 64rem;
+  --machine-card-collapsed-height: 11.5rem;
+
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper);
+  --muted: var(--color-paper-2);
+  --muted-foreground: var(--color-muted);
+  --border: var(--color-rule);
+  --border-subtle: var(--color-paper-3);
+  --ring: var(--color-focus);
+  --chart-1: var(--color-chart-1);
+  --chart-2: var(--color-chart-2);
+  --chart-3: var(--color-chart-3);
+  --chart-grid: var(--color-chart-grid);
+  --danger: var(--color-danger);
+  --danger-fill: var(--color-danger-surface);
+  --danger-border: var(--color-danger-rule);
+  --warning: var(--color-warning);
+  --warning-fill: var(--color-warning-surface);
+  --radius: var(--radius-control);
+  --radius-lg: var(--radius-panel);
+  --shadow-sm: var(--shadow-raised);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: oklch(13% 0.012 258);
+    --color-paper-2: oklch(17% 0.014 258);
+    --color-paper-3: oklch(21% 0.016 258);
+    --color-ink: oklch(94% 0.007 250);
+    --color-ink-2: oklch(84% 0.009 252);
+    --color-muted: oklch(70% 0.012 254);
+    --color-rule: oklch(31% 0.016 258);
+    --color-rule-strong: oklch(48% 0.018 256);
+    --color-accent: oklch(72% 0.16 256);
+    --color-accent-ink: oklch(14% 0.018 258);
+    --color-focus: oklch(78% 0.15 256);
+    --color-warning: oklch(76% 0.12 78);
+    --color-warning-ink: oklch(88% 0.08 78);
+    --color-warning-surface: oklch(22% 0.035 76);
+    --color-danger: oklch(72% 0.16 28);
+    --color-danger-ink: oklch(90% 0.07 28);
+    --color-danger-surface: oklch(21% 0.035 27);
+    --color-danger-rule: oklch(51% 0.105 27);
+    --color-shadow: oklch(4% 0.01 258 / 0.32);
+    --color-chart-1-fill: oklch(72% 0.16 256 / 0.16);
+    --color-chart-2-fill: oklch(76% 0.12 78 / 0.12);
+    --color-chart-3-fill: oklch(70% 0.012 254 / 0.09);
+  }
+}

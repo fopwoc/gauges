@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+.DS_Store
+.env
+target
+**/build
+**/.gradle
+**/.svelte-kit
+**/node_modules
+*.db
+*.db-shm
+*.db-wal
+*.redb

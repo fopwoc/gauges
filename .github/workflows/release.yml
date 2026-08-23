@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Verify release tag and commit
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use the stable semantic version format 1.2.3."
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "The tagged commit must be reachable from main."
+            exit 1
+          fi
+
+  probe:
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@1.90
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Install cross
+        run: cargo install cross --locked --version 0.2.5
+      - name: Build and package probe
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cross build --locked --release -p gauges-probe --target "$TARGET"
+
+          package="gauges-probe-${VERSION}-${TARGET}"
+          install -Dm755 "target/${TARGET}/release/gauges-probe" "${package}/gauges-probe"
+          install -Dm644 probe/probe.example.toml "${package}/probe.example.toml"
+          install -Dm644 deploy/gauges-probe.service "${package}/gauges-probe.service"
+          install -Dm755 deploy/openwrt/gauges-probe.init "${package}/gauges-probe.init"
+          install -Dm644 LICENSE "${package}/LICENSE"
+          tar -czf "${package}.tar.gz" "$package"
+          sha256sum "${package}.tar.gz" > "${package}.tar.gz.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gauges-probe-${{ matrix.target }}
+          path: |
+            gauges-probe-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+            gauges-probe-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  images:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: gauges-probe
+            context: .
+            file: ./probe/Dockerfile
+          - image: gauges
+            context: .
+            file: ./Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: metadata
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  release:
+    needs:
+      - probe
+      - images
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: gauges-probe-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate release notes
+        shell: bash
+        run: |
+          previous_tag="$(
+            git tag --merged "$GITHUB_SHA" --sort=-version:refname |
+              grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' |
+              grep -Fvx "$GITHUB_REF_NAME" |
+              head -n 1 || true
+          )"
+
+          if [[ -n "$previous_tag" ]]; then
+            range="${previous_tag}..${GITHUB_SHA}"
+          else
+            range="$GITHUB_SHA"
+          fi
+
+          {
+            printf '## Commits\n\n'
+            git log --format='- %s (%h)' "$range"
+          } > release-notes.md
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          make_latest: true

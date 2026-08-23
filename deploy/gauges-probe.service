@@ -1,0 +1,23 @@
+[Unit]
+Description=Gauges Linux metrics probe
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gauges-probe --config /etc/gauges/probe.toml
+Restart=on-failure
+RestartSec=60s
+StateDirectory=gauges
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
