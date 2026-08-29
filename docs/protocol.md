@@ -46,7 +46,26 @@ buffered samples:
         "swapTotalBytes": 0,
         "swapUsedBytes": 0
       },
-      "disks": [],
+      "storage": [
+        {
+          "kind": "disk",
+          "id": "disk:nvme0n1",
+          "label": "nvme0n1",
+          "mountPoints": ["/"],
+          "totalBytes": 1000204886016,
+          "usedBytes": 105294991360,
+          "usagePercent": 10.53,
+          "fullestFilesystem": {
+            "mountPoint": "/",
+            "fileSystem": "ext4",
+            "totalBytes": 995907784704,
+            "usedBytes": 105294991360,
+            "usagePercent": 10.57
+          },
+          "device": "nvme0n1",
+          "fileSystems": ["ext4"]
+        }
+      ],
       "networks": [],
       "gpus": [],
       "powerWatts": null,
@@ -55,6 +74,19 @@ buffered samples:
   ]
 }
 ```
+
+Storage is reported by allocation owner rather than by mount. `disk` entries
+use the whole block device capacity and retain the fullest contained filesystem
+as a risk indicator. An explicitly included or broadly enabled source that has
+no discoverable block owner uses the `filesystem` fallback. `btrfs` entries
+carry explicit logical usable bytes, the filesystem UUID, member devices,
+allocation profiles, raw member capacity, allocation counters, and read-only
+device error counters when the GNU Linux ioctl backend is available. A Btrfs
+root partition uses its whole top-level backing disk for the common aggregate
+capacity while preserving the filesystem value in `logicalBytes`; multi-device
+pools use logical capacity for the aggregate. `ubi` entries use UBIFS capacity and add UBI
+eraseblock state plus backing-MTD ECC and bad-block counters when sysfs exposes
+them. No storage health query resets counters or changes kernel state.
 
 `gpuTypes` is a stable, sorted list discovered when the probe starts. NVIDIA
 entries use the NVML model name when available; DRM devices use a readable

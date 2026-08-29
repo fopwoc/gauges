@@ -84,6 +84,8 @@ Open `http://localhost:8080`. The dashboard and Probe ingest API share that port
 Build on a Linux machine for its native target:
 
 ```bash
+# Debian/Ubuntu build dependency for btrfs-uapi's generated kernel bindings:
+sudo apt-get install clang libclang-dev linux-libc-dev
 cargo build --locked --release -p gauges-probe
 sudo install -m 0755 target/release/gauges-probe /usr/local/bin/
 sudo install -d /etc/gauges
@@ -91,6 +93,12 @@ sudo install -m 0600 probe/probe.example.toml /etc/gauges/probe.toml
 sudo install -m 0644 deploy/gauges-probe.service /etc/systemd/system/
 sudo systemctl enable --now gauges-probe
 ```
+
+For a release asset, use `x86_64-unknown-linux-gnu` on an ordinary glibc Linux
+host. NVIDIA metrics require this GNU-linked build because `nvml-wrapper`
+dynamically loads the driver's glibc `libnvidia-ml.so.1`. The static musl
+artifacts are for OpenWrt, Alpine-style systems, and deployments that do not
+need NVIDIA metrics.
 
 The packaged systemd unit runs as root so it can read protected hwmon, RAPL,
 and GPU counters on distributions that restrict those files. Its filesystem,
@@ -113,8 +121,18 @@ loses the offline outbox.
 
 The probe image is useful for packaging and container telemetry, but an
 ordinary container sees its own mounts/network namespace and may not have
-access to host hwmon, RAPL, DRM, or NVML. Install the binary as a host service
-when the goal is to monitor the Linux host itself.
+access to host hwmon, RAPL, DRM, or NVML. The shipped Alpine image is musl-based
+and therefore intentionally does not support NVIDIA NVML. Install the GNU-linked
+binary as a host service when the goal is to monitor the Linux host itself.
+
+A future host-monitoring container should follow the node-exporter boundary:
+join the host PID, network, and UTS namespaces; bind host `/proc`, `/sys`,
+`/etc/os-release`, and `/` read-only under `/host`; translate mount points through
+that host root; and keep the container read-only with all capabilities dropped.
+NVIDIA additionally needs a glibc image plus the NVIDIA container runtime's
+read-only device/library injection. Do not use `privileged`. The current
+collectors are not all root-path aware yet, so mounting `/host` alone is not a
+supported host-monitoring mode.
 
 ## OpenWrt
 
@@ -149,9 +167,16 @@ Currently collected:
 
 - aggregate CPU utilization and best available CPU/package temperature;
 - actual RAM, available RAM, and swap;
-- proven local filesystems' total/used bytes, excluding container overlays,
-  bind mounts, memory filesystems, network mounts, and pseudo filesystems by
-  default;
+- proven local storage owners' total/used bytes, excluding boot filesystems,
+  container overlays, bind mounts, memory filesystems, network mounts, and
+  pseudo filesystems by default; ordinary partitions roll up to their whole
+  block device while the fullest contained filesystem remains visible;
+- mounted Btrfs filesystems once per UUID, with explicit logical usable and raw
+  member capacity, allocation profiles, and read-only allocation/device-error
+  ioctls on GNU Linux; a root partition rolls up to its whole backing disk,
+  while a multi-device pool contributes its logical usable capacity;
+- UBIFS volumes with UBI eraseblock health and backing NAND ECC/bad-block
+  counters read directly from sysfs on OpenWrt;
 - byte totals and calculated rates for physical NICs (or explicit overrides);
 - AMD/Intel DRM utilization, VRAM, and temperature when sysfs exposes them;
 - NVIDIA utilization, VRAM, and temperature through the driver's NVML library;
@@ -164,14 +189,21 @@ SMART health is not in v1. It normally requires the privileged `smartctl`
 command, would be expensive to invoke every 10 seconds, and is not consistently
 present on OpenWrt. Its absence never blocks the common metrics pipeline.
 
-Disk filtering reads Linux mount metadata from `/proc/self/mountinfo` and
-requires a matching `/sys/dev/block/<major>:<minor>` entry. UBIFS and JFFS2 are
-also accepted for OpenWrt. Exact TOML mount-point overrides are available as
-`disk_include` and `disk_exclude` (exclude wins); their environment equivalents
-are `GAUGES_DISK_INCLUDE` and `GAUGES_DISK_EXCLUDE`. Set
+Storage filtering reads Linux mount metadata from `/proc/self/mountinfo` and
+normally requires a matching `/sys/dev/block/<major>:<minor>` entry. Btrfs uses
+anonymous mount device numbers, so its `/dev/...` source is instead verified
+through `/sys/class/block`; pool identity, members, and profiles come from
+`/sys/fs/btrfs`, while `btrfs-uapi` avoids parsing command output for extended
+GNU Linux metrics. UBIFS is resolved through `/sys/class/ubi` and
+`/sys/class/mtd`; no external `ubinfo` process or UBIFS Rust library is needed.
+Boot filesystems are omitted unless explicitly included. Exact TOML mount-point
+filters remain available as `disk_include` and `disk_exclude` (exclude wins);
+their environment equivalents are `GAUGES_DISK_INCLUDE` and
+`GAUGES_DISK_EXCLUDE`. Set
 `local_filesystems_only = false` or `GAUGES_LOCAL_FILESYSTEMS_ONLY=false` to
 restore sysinfo's broad mounted-filesystem list. `GAUGES_PROC_ROOT` and
-`GAUGES_SYS_ROOT` exist primarily for container layouts and tests.
+`GAUGES_SYS_ROOT` exist primarily for collector layouts and tests;
+`GAUGES_ETC_ROOT` selects the directory containing host `os-release`.
 
 See [the architecture](docs/architecture.md) and [protocol](docs/protocol.md)
 for the storage and API contracts.

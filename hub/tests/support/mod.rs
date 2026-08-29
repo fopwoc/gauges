@@ -2,7 +2,8 @@ use std::{collections::BTreeMap, path::PathBuf, time::Duration};
 
 use gauges_hub::{ConfiguredDevice, HubConfig};
 use gauges_shared::{
-    CpuMetric, DiskMetric, MemoryMetric, MetricSample, NetworkMetric, ProbeIdentity,
+    CpuMetric, FilesystemConstraintMetric, MemoryMetric, MetricSample, NetworkMetric,
+    ProbeIdentity, StorageCommon, StorageMetric,
 };
 
 #[allow(dead_code)]
@@ -52,13 +53,24 @@ pub fn test_sample(id: &str, captured_at_ms: i64) -> MetricSample {
             swap_total_bytes: 100,
             swap_used_bytes: 10,
         },
-        disks: vec![DiskMetric {
-            device: "/dev/sda1".into(),
-            mount_point: "/".into(),
-            file_system: "ext4".into(),
-            total_bytes: 10_000,
-            used_bytes: 2_000,
-            usage_percent: 20.0,
+        storage: vec![StorageMetric::Disk {
+            common: StorageCommon {
+                id: "disk:sda".into(),
+                label: "sda".into(),
+                mount_points: vec!["/".into()],
+                total_bytes: 10_000,
+                used_bytes: 2_000,
+                usage_percent: 20.0,
+                fullest_filesystem: Some(FilesystemConstraintMetric {
+                    mount_point: "/".into(),
+                    file_system: "ext4".into(),
+                    total_bytes: 10_000,
+                    used_bytes: 2_000,
+                    usage_percent: 20.0,
+                }),
+            },
+            device: "sda".into(),
+            file_systems: vec!["ext4".into()],
         }],
         networks: vec![NetworkMetric {
             interface: "eth0".into(),

@@ -3,7 +3,9 @@ import {
   clampChartWindowEnd,
   findMissingIntervals,
   formatBytes,
+  formatCompactNumber,
   formatDuration,
+  formatRate,
   mergeSamples,
   relativeTime,
   summarizeStorage,
@@ -18,7 +20,7 @@ function sample(sampleId: string, capturedAtMs: number): MetricSample {
     capturedAtMs,
     cpu: { usagePercent: 0, temperatureCelsius: null },
     memory: { totalBytes: 0, usedBytes: 0, availableBytes: 0, swapTotalBytes: 0, swapUsedBytes: 0 },
-    disks: [],
+    storage: [],
     networks: [],
     gpus: [],
     powerWatts: null,
@@ -30,19 +32,28 @@ describe('metric helpers', () => {
   test('formats compact values', () => {
     expect(formatBytes(1_073_741_824)).toBe('1.00 GiB');
     expect(formatDuration(93_720)).toBe('1d 2h');
+    expect(formatRate(1_000_000)).toBe('8 Mb/s');
+    expect(formatCompactNumber(10_000)).toBe('10k');
+    expect(formatCompactNumber(1_000_000)).toBe('1m');
   });
 
-  test('summarizes logical storage and identifies the fullest volume', () => {
+  test('summarizes storage pools and identifies the fullest pool', () => {
     const summary = summarizeStorage([
-      { device: '/dev/a', mountPoint: '/', fileSystem: 'btrfs', totalBytes: 100, usedBytes: 40, usagePercent: 40 },
-      { device: '/dev/b', mountPoint: '/archive', fileSystem: 'btrfs', totalBytes: 300, usedBytes: 270, usagePercent: 90 }
+      {
+        kind: 'disk', id: 'disk:a', label: 'a', device: 'a', fileSystems: ['ext4'], mountPoints: ['/'],
+        totalBytes: 100, usedBytes: 40, usagePercent: 40, fullestFilesystem: null
+      },
+      {
+        kind: 'disk', id: 'disk:b', label: 'archive', device: 'b', fileSystems: ['xfs'], mountPoints: ['/archive'],
+        totalBytes: 300, usedBytes: 270, usagePercent: 90, fullestFilesystem: null
+      }
     ]);
     expect(summary).toMatchObject({
       totalBytes: 400,
       usedBytes: 310,
       usagePercent: 77.5,
-      volumeCount: 2,
-      fullest: { mountPoint: '/archive' }
+      poolCount: 2,
+      fullest: { label: 'archive' }
     });
   });
 

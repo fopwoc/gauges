@@ -128,7 +128,7 @@ async fn upload_pending(
 
         // Network identity is refreshed for every reconnect/upload so DHCP or
         // hostname changes reach the hub. GPU types are stable startup facts.
-        let current_identity = probe_identity(gpu_types.to_vec());
+        let current_identity = probe_identity(gpu_types.to_vec(), &config.etc_root);
         match client
             .ingest(
                 &current_identity,

@@ -16,7 +16,7 @@ fn sample(id: &str, captured_at_ms: i64) -> MetricSample {
             swap_total_bytes: 0,
             swap_used_bytes: 0,
         },
-        disks: vec![],
+        storage: vec![],
         networks: vec![],
         gpus: vec![],
         power_watts: None,

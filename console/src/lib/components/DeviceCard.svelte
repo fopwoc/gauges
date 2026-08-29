@@ -45,7 +45,7 @@
   let networkTransmit = $derived(
     latest?.networks.reduce((sum, network) => sum + network.transmittedBytesPerSecond, 0) ?? 0
   );
-  let storage = $derived(summarizeStorage(latest?.disks ?? []));
+  let storage = $derived(summarizeStorage(latest?.storage ?? []));
   let gpuUsage = $derived.by(() => {
     const values = (latest?.gpus ?? [])
       .map((gpu) => gpu.usagePercent)
@@ -166,7 +166,7 @@
             label="Storage"
             value={storage.usagePercent}
             primary={`${formatBytes(storage.usedBytes)} / ${formatBytes(storage.totalBytes)}`}
-            secondary={`${storage.volumeCount} ${storage.volumeCount === 1 ? 'volume' : 'volumes'} · fullest ${storage.fullest.mountPoint} ${storage.fullest.usagePercent.toFixed(0)}%`}
+            secondary={`${storage.poolCount} storage ${storage.poolCount === 1 ? 'pool' : 'pools'} · fullest ${storage.fullestFilesystem?.mountPoint ?? storage.fullest.label} ${(storage.fullestFilesystem?.usagePercent ?? storage.fullest.usagePercent).toFixed(0)}%`}
           />
         {/if}
         <dl class="numbers">

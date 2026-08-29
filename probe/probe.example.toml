@@ -21,12 +21,14 @@ physical_networks_only = true
 network_include = []
 network_exclude = []
 
-# Report only proven local, block-backed filesystems by default. Exact mount
-# point includes override classification (useful for btrfs subvolumes); exact
-# excludes always win. Set false to restore sysinfo's broad mount list.
+# Report only proven local storage pools by default. Boot filesystems are
+# omitted unless explicitly included. Exact mount-point includes override
+# classification; exact excludes always win. Set
+# false to restore sysinfo's broad mount list.
 local_filesystems_only = true
 disk_include = []
 disk_exclude = []
 
+etc_root = "/etc"
 sys_root = "/sys"
 proc_root = "/proc"

@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use gauges_shared::MetricSample;
 use redb::{Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition};
 
-const SCHEMA_VERSION: u64 = 1;
+const SCHEMA_VERSION: u64 = 2;
 const META: TableDefinition<&str, u64> = TableDefinition::new("meta");
 const SAMPLES: TableDefinition<&[u8], &[u8]> = TableDefinition::new("samples");
 const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("sample_locations");

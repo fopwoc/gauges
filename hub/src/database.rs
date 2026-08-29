@@ -5,7 +5,7 @@ use gauges_shared::{MILLIS_PER_HOUR, MetricSample, ProbeIdentity};
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
 
-const SCHEMA_VERSION: u64 = 1;
+const SCHEMA_VERSION: u64 = 2;
 const META: TableDefinition<&str, u64> = TableDefinition::new("meta");
 const DEVICES: TableDefinition<&str, &[u8]> = TableDefinition::new("devices");
 const SAMPLES_BY_TIME: TableDefinition<&[u8], &[u8]> = TableDefinition::new("samples_by_time");

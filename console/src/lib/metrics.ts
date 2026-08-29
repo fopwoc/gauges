@@ -1,6 +1,14 @@
-import type { ChartPoint, DiskMetric, MetricSample, MissingInterval } from './types';
+import type {
+  ChartPoint,
+  FilesystemConstraintMetric,
+  MetricSample,
+  MissingInterval,
+  StorageMetric
+} from './types';
 
 const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
+const RATE_UNITS = ['b/s', 'Kb/s', 'Mb/s', 'Gb/s', 'Tb/s'];
+const COMPACT_SUFFIXES = ['', 'k', 'm', 'b', 't'];
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -10,7 +18,39 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatRate(bytesPerSecond: number): string {
-  return `${formatBytes(bytesPerSecond)}/s`;
+  return formatBitsPerSecond(bytesPerSecond * 8);
+}
+
+export function toBitsPerSecond(bytesPerSecond: number | null | undefined): number | null {
+  return bytesPerSecond == null ? null : bytesPerSecond * 8;
+}
+
+export function formatBitsPerSecond(bitsPerSecond: number): string {
+  if (!Number.isFinite(bitsPerSecond) || bitsPerSecond <= 0) return '0 b/s';
+  const exponent = Math.min(
+    Math.floor(Math.log(bitsPerSecond) / Math.log(1_000)),
+    RATE_UNITS.length - 1
+  );
+  const value = bitsPerSecond / 1_000 ** exponent;
+  return `${formatSignificantValue(value)} ${RATE_UNITS[exponent]}`;
+}
+
+export function formatCompactNumber(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return '0';
+  const absolute = Math.abs(value);
+  const exponent = Math.min(
+    Math.floor(Math.log(absolute) / Math.log(1_000)),
+    COMPACT_SUFFIXES.length - 1
+  );
+  const scaled = value / 1_000 ** Math.max(0, exponent);
+  return `${formatSignificantValue(scaled)}${COMPACT_SUFFIXES[Math.max(0, exponent)]}`;
+}
+
+function formatSignificantValue(value: number): string {
+  const absolute = Math.abs(value);
+  const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
+  const formatted = value.toFixed(digits);
+  return digits === 0 ? formatted : formatted.replace(/\.?0+$/, '');
 }
 
 export function formatPercent(value: number | null | undefined): string {
@@ -39,23 +79,32 @@ export interface StorageSummary {
   totalBytes: number;
   usedBytes: number;
   usagePercent: number;
-  volumeCount: number;
-  fullest: DiskMetric;
+  poolCount: number;
+  fullest: StorageMetric;
+  fullestFilesystem: FilesystemConstraintMetric | null;
 }
 
-export function summarizeStorage(disks: DiskMetric[]): StorageSummary | null {
-  if (disks.length === 0) return null;
-  const totalBytes = disks.reduce((sum, disk) => sum + disk.totalBytes, 0);
-  const usedBytes = disks.reduce((sum, disk) => sum + disk.usedBytes, 0);
-  const fullest = disks.reduce((current, disk) =>
-    disk.usagePercent > current.usagePercent ? disk : current
+export function summarizeStorage(storage: StorageMetric[]): StorageSummary | null {
+  if (storage.length === 0) return null;
+  const totalBytes = storage.reduce((sum, pool) => sum + pool.totalBytes, 0);
+  const usedBytes = storage.reduce((sum, pool) => sum + pool.usedBytes, 0);
+  const fullest = storage.reduce((current, pool) =>
+    pool.usagePercent > current.usagePercent ? pool : current
   );
+  const fullestFilesystem = storage
+    .flatMap((pool) => pool.fullestFilesystem ? [pool.fullestFilesystem] : [])
+    .reduce<FilesystemConstraintMetric | null>(
+      (current, filesystem) =>
+        current == null || filesystem.usagePercent > current.usagePercent ? filesystem : current,
+      null
+    );
   return {
     totalBytes,
     usedBytes,
     usagePercent: usagePercent(usedBytes, totalBytes),
-    volumeCount: disks.length,
-    fullest
+    poolCount: storage.length,
+    fullest,
+    fullestFilesystem
   };
 }
 

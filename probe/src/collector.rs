@@ -12,12 +12,14 @@ use gauges_shared::{
 };
 use nvml_wrapper::{Nvml, enum_wrappers::device::TemperatureSensor};
 use sysinfo::{Components, Networks, System};
+use tracing::{debug, error};
 use uuid::Uuid;
 
-use crate::{config::ProbeConfig, disk::DiskCollector};
+use crate::{config::ProbeConfig, storage::StorageCollector};
 
 pub struct MetricsCollector {
     system: System,
+    etc_root: PathBuf,
     sys_root: PathBuf,
     physical_networks_only: bool,
     network_include: Vec<String>,
@@ -26,13 +28,25 @@ pub struct MetricsCollector {
     previous_network_at: Instant,
     power: PowerCollector,
     nvidia: Option<Nvml>,
-    disks: DiskCollector,
+    storage: StorageCollector,
 }
 
 impl MetricsCollector {
     pub fn new(config: &ProbeConfig) -> Self {
+        let nvidia = match Nvml::init() {
+            Ok(nvml) => Some(nvml),
+            Err(error) => {
+                if has_drm_driver(&config.sys_root, "nvidia") {
+                    error!(%error, "NVIDIA DRM is present but NVML could not be initialized");
+                } else {
+                    debug!(%error, "NVML is unavailable; NVIDIA metrics are disabled");
+                }
+                None
+            }
+        };
         Self {
             system: System::new_all(),
+            etc_root: config.etc_root.clone(),
             sys_root: config.sys_root.clone(),
             physical_networks_only: config.physical_networks_only,
             network_include: config.network_include.clone(),
@@ -40,8 +54,8 @@ impl MetricsCollector {
             previous_network_totals: HashMap::new(),
             previous_network_at: Instant::now(),
             power: PowerCollector::default(),
-            nvidia: Nvml::init().ok(),
-            disks: DiskCollector::new(config),
+            nvidia,
+            storage: StorageCollector::new(config),
         }
     }
 
@@ -50,7 +64,7 @@ impl MetricsCollector {
         if let Some(nvml) = &self.nvidia {
             gpus.extend(collect_nvidia_gpus(nvml));
         }
-        probe_identity(gpu_type_names(&gpus))
+        probe_identity(gpu_type_names(&gpus), &self.etc_root)
     }
 
     pub fn collect(&mut self) -> Result<MetricSample> {
@@ -85,7 +99,7 @@ impl MetricsCollector {
                 temperature_celsius: cpu_temperature(),
             },
             memory,
-            disks: self.disks.collect(),
+            storage: self.storage.collect(),
             networks,
             gpus,
             power_watts: self.power.read_watts(&self.sys_root),
@@ -141,16 +155,44 @@ impl MetricsCollector {
     }
 }
 
-pub fn probe_identity(gpu_types: Vec<String>) -> ProbeIdentity {
-    let os = os_info::get();
+pub fn probe_identity(gpu_types: Vec<String>, etc_root: &Path) -> ProbeIdentity {
+    let (distro, distro_version) = distro_identity(etc_root);
     ProbeIdentity {
         hostname: System::host_name().unwrap_or_else(|| "unknown".into()),
-        distro: os.os_type().to_string(),
-        distro_version: os.version().to_string(),
+        distro,
+        distro_version,
         kernel_version: System::kernel_version().unwrap_or_else(|| "unknown".into()),
         ip_address: local_ip_address::local_ip().ok().map(|ip| ip.to_string()),
         gpu_types,
     }
+}
+
+fn distro_identity(etc_root: &Path) -> (String, String) {
+    if let Ok(contents) = fs::read_to_string(etc_root.join("os-release")) {
+        let fields = contents
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    return None;
+                }
+                let (key, value) = line.split_once('=')?;
+                Some((key.trim(), value.trim().trim_matches(['\'', '"'])))
+            })
+            .collect::<HashMap<_, _>>();
+        if let Some(name) = fields.get("NAME").or_else(|| fields.get("ID")) {
+            let version = fields
+                .get("VERSION")
+                .or_else(|| fields.get("VERSION_ID"))
+                .or_else(|| fields.get("BUILD_ID"))
+                .copied()
+                .unwrap_or("Unknown");
+            return ((*name).to_owned(), version.to_owned());
+        }
+    }
+
+    let os = os_info::get();
+    (os.os_type().to_string(), os.version().to_string())
 }
 
 fn gpu_type_names(gpus: &[GpuMetric]) -> Vec<String> {
@@ -234,6 +276,19 @@ fn collect_drm_gpus(sys_root: &Path) -> Vec<GpuMetric> {
         .collect::<Vec<_>>();
     result.sort_by(|left, right| left.device.cmp(&right.device));
     result
+}
+
+fn has_drm_driver(sys_root: &Path, expected: &str) -> bool {
+    let Ok(entries) = fs::read_dir(sys_root.join("class/drm")) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        is_card_device(&entry.file_name())
+            && fs::read_link(entry.path().join("device/driver"))
+                .ok()
+                .and_then(|path| path.file_name().map(|name| name == expected))
+                .unwrap_or(false)
+    })
 }
 
 fn collect_nvidia_gpus(nvml: &Nvml) -> Vec<GpuMetric> {
@@ -345,8 +400,11 @@ fn unix_time_ms() -> Result<i64> {
 
 #[cfg(test)]
 mod tests {
-    use super::gpu_type_names;
+    use std::fs;
+
+    use super::{distro_identity, gpu_type_names};
     use gauges_shared::GpuMetric;
+    use tempfile::TempDir;
 
     fn gpu(device: &str, driver: Option<&str>) -> GpuMetric {
         GpuMetric {
@@ -371,6 +429,21 @@ mod tests {
         assert_eq!(
             gpu_type_names(&gpus),
             vec!["AMD (amdgpu)", "Intel (i915)", "NVIDIA GeForce RTX 4090",],
+        );
+    }
+
+    #[test]
+    fn os_release_identifies_openwrt_without_os_info_support() {
+        let directory = TempDir::new().unwrap();
+        fs::write(
+            directory.path().join("os-release"),
+            "NAME=\"OpenWrt\"\nVERSION=\"25.12.5\"\nID=openwrt\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            distro_identity(directory.path()),
+            ("OpenWrt".to_owned(), "25.12.5".to_owned()),
         );
     }
 }

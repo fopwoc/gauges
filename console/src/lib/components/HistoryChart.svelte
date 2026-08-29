@@ -4,6 +4,7 @@
   import {
     clampChartWindowEnd,
     findMissingIntervals,
+    formatCompactNumber,
     valueAtLatestSample,
     wheelDeltaToTimeMs
   } from '$lib/metrics';
@@ -233,7 +234,7 @@
           size: 54,
           values: scale === 'percentage'
             ? (_plot, ticks) => ticks.map((value) => `${value.toFixed(0)}%`)
-            : undefined
+            : (_plot, ticks) => ticks.map(formatCompactNumber)
         }
       ],
       series: [

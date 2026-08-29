@@ -99,6 +99,12 @@ lazy, making the same page suitable for a best-effort wall display.
 
 Compact cards show current CPU, RAM, optional GPU, storage, network, swap, and
 power state. Online status and uptime share one status line. Storage is the
-aggregate of the logical filesystems visible to the probe, with the fullest
-mount called out; expanded history remains per mount/device. The history charts
-use probe-local time and deliberately do not imply cross-machine clock alignment.
+aggregate of the unique local storage owners visible to the probe, with the
+fullest contained filesystem called out. Ordinary partitions and a Btrfs root
+partition roll up to whole block devices; the fullest contained filesystem
+remains attached as a risk signal. Multi-device Btrfs filesystems contribute
+logical usable capacity once per UUID and expose their members, profiles,
+allocation, and device errors. UBIFS volumes expose UBI/MTD
+health alongside logical capacity. Boot filesystems are opt-in, and expanded
+history remains per storage owner. The history charts use probe-local time and
+deliberately do not imply cross-machine clock alignment.

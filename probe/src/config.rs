@@ -21,6 +21,7 @@ pub struct ProbeConfig {
     pub local_filesystems_only: bool,
     pub disk_include: Vec<String>,
     pub disk_exclude: Vec<String>,
+    pub etc_root: PathBuf,
     pub sys_root: PathBuf,
     pub proc_root: PathBuf,
 }
@@ -43,6 +44,7 @@ impl Default for ProbeConfig {
             local_filesystems_only: true,
             disk_include: Vec::new(),
             disk_exclude: Vec::new(),
+            etc_root: "/etc".into(),
             sys_root: "/sys".into(),
             proc_root: "/proc".into(),
         }
@@ -78,6 +80,7 @@ impl ProbeConfig {
         set_string("GAUGES_TOKEN", &mut self.token);
         set_string("GAUGES_HUB_URL", &mut self.hub_url);
         set_path("GAUGES_DATABASE_PATH", &mut self.database_path);
+        set_path("GAUGES_ETC_ROOT", &mut self.etc_root);
         set_path("GAUGES_SYS_ROOT", &mut self.sys_root);
         set_path("GAUGES_PROC_ROOT", &mut self.proc_root);
         set_number(
@@ -205,6 +208,7 @@ mod tests {
         assert!(config.local_filesystems_only);
         assert!(config.disk_include.is_empty());
         assert!(config.disk_exclude.is_empty());
+        assert_eq!(config.etc_root, PathBuf::from("/etc"));
         assert_eq!(config.proc_root, PathBuf::from("/proc"));
     }
 
@@ -215,6 +219,7 @@ mod tests {
                 local_filesystems_only = false
                 disk_include = ["/srv/data"]
                 disk_exclude = ["/boot"]
+                etc_root = "/host/etc"
                 proc_root = "/host/proc"
             "#,
         )
@@ -223,6 +228,7 @@ mod tests {
         assert!(!config.local_filesystems_only);
         assert_eq!(config.disk_include, ["/srv/data"]);
         assert_eq!(config.disk_exclude, ["/boot"]);
+        assert_eq!(config.etc_root, PathBuf::from("/host/etc"));
         assert_eq!(config.proc_root, PathBuf::from("/host/proc"));
     }
 }

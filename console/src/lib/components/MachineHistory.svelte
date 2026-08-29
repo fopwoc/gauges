@@ -3,12 +3,13 @@
   import HistoryChart from './HistoryChart.svelte';
   import {
     formatBytes,
+    formatBitsPerSecond,
     formatPercent,
-    formatRate,
     formatTemperature,
+    toBitsPerSecond,
     usagePercent
   } from '$lib/metrics';
-  import type { ChartSeries, DeviceHistoryState, DeviceSummary } from '$lib/types';
+  import type { ChartSeries, DeviceHistoryState, DeviceSummary, StorageMetric } from '$lib/types';
 
   const HOUR_MS = 3_600_000;
   const DAY_MS = 24 * HOUR_MS;
@@ -45,6 +46,56 @@
 
   function toggleWindow(): void {
     windowDurationMs = windowDurationMs === HOUR_MS ? DAY_MS : HOUR_MS;
+  }
+
+  function storageKind(storage: StorageMetric): string {
+    if (storage.kind === 'btrfs') return 'Btrfs';
+    if (storage.kind === 'ubi') return 'UBIFS';
+    if (storage.kind === 'filesystem') return storage.fileSystem;
+    return storage.fileSystems.join(' / ') || 'disk';
+  }
+
+  function storageDetails(storage: StorageMetric): string {
+    const fullest = storage.fullestFilesystem;
+    const constraint = fullest != null
+      && (storage.mountPoints.length > 1 || fullest.usagePercent > storage.usagePercent + 0.5)
+        ? `fullest ${fullest.mountPoint} ${fullest.usagePercent.toFixed(0)}%`
+        : null;
+    if (storage.kind === 'disk') {
+      const mounts = storage.mountPoints.length === 1
+        ? storage.mountPoints[0]
+        : `${storage.mountPoints.length} filesystems`;
+      return [storage.device, storage.fileSystems.join(' / '), mounts, constraint]
+        .filter((value): value is string => Boolean(value)).join(' · ');
+    }
+    if (storage.kind === 'filesystem') {
+      return `${storage.source} · ${storage.fileSystem}`;
+    }
+    if (storage.kind === 'btrfs') {
+      const errors = storage.deviceErrors
+        ? Object.values(storage.deviceErrors).reduce((sum, value) => sum + value, 0)
+        : null;
+      const profile = storage.dataProfiles.join(' + ') || 'unknown profile';
+      return [
+        `Btrfs ${profile}`,
+        `${storage.devices.length} ${storage.devices.length === 1 ? 'device' : 'devices'}`,
+        storage.logicalBytes === storage.totalBytes ? null : `${formatBytes(storage.logicalBytes)} usable`,
+        storage.physicalBytes === storage.logicalBytes ? null : `${formatBytes(storage.physicalBytes)} raw`,
+        errors == null ? null : errors === 0 ? 'clean' : `${errors.toLocaleString()} device errors`,
+        constraint
+      ].filter((value): value is string => value != null).join(' · ');
+    }
+    const health = storage.mtdHealth;
+    return [
+      `UBIFS ${storage.ubiDevice}${storage.mtdDevice ? ` / ${storage.mtdDevice}` : ''}`,
+      storage.maxEraseCount == null ? null : `max EC ${storage.maxEraseCount.toLocaleString()}`,
+      storage.badPebs == null ? null : `${storage.badPebs.toLocaleString()} bad PEB`,
+      health?.correctedBits == null ? null : `${health.correctedBits.toLocaleString()} corrected bits`,
+      health?.eccFailures == null ? null : `${health.eccFailures.toLocaleString()} ECC failures`,
+      storage.corrupted ? 'CORRUPTED' : null,
+      storage.readOnly ? 'read-only' : null,
+      constraint
+    ].filter((value): value is string => value != null).join(' · ');
   }
 
   $effect(() => {
@@ -87,27 +138,27 @@
     format: (value) => `${value.toFixed(1)} W`
   }]);
 
-  let diskCharts = $derived.by(() => {
-    const disks = new Map<string, { device: string; mountPoint: string }>();
+  let storageCharts = $derived.by(() => {
+    const storage = new Map<string, { label: string; kind: string }>();
     for (const sample of history.samples) {
-      for (const disk of sample.disks) {
-        disks.set(`${disk.device}:${disk.mountPoint}`, { device: disk.device, mountPoint: disk.mountPoint });
+      for (const pool of sample.storage) {
+        storage.set(pool.id, { label: pool.label, kind: storageKind(pool) });
       }
     }
-    for (const disk of latest?.disks ?? []) {
-      disks.set(`${disk.device}:${disk.mountPoint}`, { device: disk.device, mountPoint: disk.mountPoint });
+    for (const pool of latest?.storage ?? []) {
+      storage.set(pool.id, { label: pool.label, kind: storageKind(pool) });
     }
-    return [...disks.entries()]
+    return [...storage.entries()]
       .sort((left, right) => left[0].localeCompare(right[0]))
-      .map(([key, disk]) => ({
+      .map(([key, pool]) => ({
         key,
-        title: disk.mountPoint,
-        subtitle: `${disk.device} · capacity used`,
+        title: pool.label,
+        subtitle: `${pool.kind} · capacity used`,
         series: [{
           label: 'Used',
           points: history.samples.map((sample) => ({
             timeMs: sample.capturedAtMs,
-            value: sample.disks.find((item) => `${item.device}:${item.mountPoint}` === key)?.usagePercent ?? null
+            value: sample.storage.find((item) => item.id === key)?.usagePercent ?? null
           })),
           format: formatPercent
         }] satisfies ChartSeries[]
@@ -124,17 +175,21 @@
           label: 'Receive',
           points: history.samples.map((sample) => ({
             timeMs: sample.capturedAtMs,
-            value: sample.networks.find((network) => network.interface === name)?.receivedBytesPerSecond ?? null
+            value: toBitsPerSecond(
+              sample.networks.find((network) => network.interface === name)?.receivedBytesPerSecond
+            )
           })),
-          format: formatRate
+          format: formatBitsPerSecond
         },
         {
           label: 'Transmit',
           points: history.samples.map((sample) => ({
             timeMs: sample.capturedAtMs,
-            value: sample.networks.find((network) => network.interface === name)?.transmittedBytesPerSecond ?? null
+            value: toBitsPerSecond(
+              sample.networks.find((network) => network.interface === name)?.transmittedBytesPerSecond
+            )
           })),
-          format: formatRate
+          format: formatBitsPerSecond
         }
       ] satisfies ChartSeries[]
     }));
@@ -191,20 +246,19 @@
     </span>
   </header>
 
-  {#if latest && (latest.disks.length > 0 || latest.gpus.length > 0)}
+  {#if latest && (latest.storage.length > 0 || latest.gpus.length > 0)}
     <section class="hardware" aria-labelledby={`hardware-${device.deviceId}`}>
       <div class="section-title">
-        <h3 id={`hardware-${device.deviceId}`}>Logical hardware</h3>
-        <span>filesystem-visible capacity · optional accelerators</span>
+        <h3 id={`hardware-${device.deviceId}`}>{latest.gpus.length > 0 ? 'Storage and graphics' : 'Storage'}</h3>
       </div>
-      {#if latest.disks.length > 0}
+      {#if latest.storage.length > 0}
         <div class="volume-list">
-          {#each latest.disks as disk (`${disk.device}:${disk.mountPoint}`)}
+          {#each latest.storage as storage (storage.id)}
             <CapacityBar
-              label={disk.mountPoint}
-              value={disk.usagePercent}
-              primary={`${formatBytes(disk.usedBytes)} / ${formatBytes(disk.totalBytes)}`}
-              secondary={`${disk.device} · ${disk.fileSystem}`}
+              label={storage.label}
+              value={storage.usagePercent}
+              primary={`${formatBytes(storage.usedBytes)} / ${formatBytes(storage.totalBytes)}`}
+              secondary={storageDetails(storage)}
             />
           {/each}
         </div>
@@ -236,11 +290,11 @@
       {#if history.samples.some((sample) => sample.powerWatts != null)}
         <HistoryChart title="Package power" subtitle="watts" series={powerSeries} {sampleTimesMs} serverTimeMs={chartNowMs} online={device.online} {expectedIntervalMs} {selectedTimeMs} onSelectedTimeChange={selectTime} {windowDurationMs} {viewEndMs} {followingLatest} onViewportChange={setViewport} onToggleWindow={toggleWindow} />
       {/if}
-      {#each diskCharts as disk (disk.key)}
-        <HistoryChart title={disk.title} subtitle={disk.subtitle} series={disk.series} {sampleTimesMs} serverTimeMs={chartNowMs} online={device.online} {expectedIntervalMs} {selectedTimeMs} onSelectedTimeChange={selectTime} {windowDurationMs} {viewEndMs} {followingLatest} onViewportChange={setViewport} onToggleWindow={toggleWindow} scale="percentage" />
+      {#each storageCharts as storage (storage.key)}
+        <HistoryChart title={storage.title} subtitle={storage.subtitle} series={storage.series} {sampleTimesMs} serverTimeMs={chartNowMs} online={device.online} {expectedIntervalMs} {selectedTimeMs} onSelectedTimeChange={selectTime} {windowDurationMs} {viewEndMs} {followingLatest} onViewportChange={setViewport} onToggleWindow={toggleWindow} scale="percentage" />
       {/each}
       {#each networkCharts as network (network.name)}
-        <HistoryChart title={network.name} subtitle="network throughput" series={network.series} {sampleTimesMs} serverTimeMs={chartNowMs} online={device.online} {expectedIntervalMs} {selectedTimeMs} onSelectedTimeChange={selectTime} {windowDurationMs} {viewEndMs} {followingLatest} onViewportChange={setViewport} onToggleWindow={toggleWindow} />
+        <HistoryChart title={network.name} subtitle="network throughput · bit/s" series={network.series} {sampleTimesMs} serverTimeMs={chartNowMs} online={device.online} {expectedIntervalMs} {selectedTimeMs} onSelectedTimeChange={selectTime} {windowDurationMs} {viewEndMs} {followingLatest} onViewportChange={setViewport} onToggleWindow={toggleWindow} />
       {/each}
       {#each gpuCharts as gpu (gpu.device)}
         {#if gpu.percentageSeries.length > 0}
@@ -265,7 +319,6 @@
   .hardware + .charts { margin-top: var(--space-lg); }
   .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-md); }
   .section-title h3 { margin: 0; color: var(--color-ink); font-family: var(--font-display); font-size: var(--text-sm); font-weight: 680; }
-  .section-title span { color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); text-align: right; }
   .volume-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--space-md); }
   .gpu-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--space-md); margin: var(--space-lg) 0 0; }
   .gpu-list div { min-width: 0; }
@@ -275,6 +328,5 @@
   @media (max-width: 40rem) {
     .system-line,
     .section-title { align-items: flex-start; flex-direction: column; }
-    .section-title span { text-align: left; }
   }
 </style>
