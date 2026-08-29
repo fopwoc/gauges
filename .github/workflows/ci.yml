@@ -28,6 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Install GNU probe build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends clang libclang-dev linux-libc-dev
       - uses: dtolnay/rust-toolchain@1.90
         with:
           components: rustfmt, clippy

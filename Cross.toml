@@ -1,5 +1,0 @@
-[target.x86_64-unknown-linux-gnu]
-pre-build = [
-    "apt-get update",
-    "apt-get install --assume-yes --no-install-recommends clang libclang-dev linux-libc-dev",
-]
