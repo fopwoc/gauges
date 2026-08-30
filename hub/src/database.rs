@@ -1,9 +1,13 @@
+mod model;
+
 use std::{io::Read, path::Path, sync::Arc};
 
 use anyhow::{Context, Result};
 use gauges_shared::{MILLIS_PER_HOUR, MetricSample, ProbeIdentity};
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
+
+pub use model::{StoredDevice, StoredDeviceStatus, StoredHistory};
 
 const SCHEMA_VERSION: u64 = 2;
 const META: TableDefinition<&str, u64> = TableDefinition::new("meta");
@@ -33,31 +37,6 @@ struct StoredDeviceDocument {
 struct StoredSampleDocument {
     received_at_ms: i64,
     sample: MetricSample,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct StoredDevice {
-    pub device_id: String,
-    pub display_name: String,
-    pub identity: ProbeIdentity,
-    pub retention_hours: u64,
-    pub collection_interval_seconds: u64,
-    pub last_metric_time_ms: i64,
-    pub latest_sample: Option<MetricSample>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct StoredDeviceStatus {
-    pub collection_interval_seconds: u64,
-    pub last_metric_time_ms: i64,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct StoredHistory {
-    pub retention_hours: u64,
-    pub collection_interval_seconds: u64,
-    pub samples: Vec<MetricSample>,
-    pub next_metric_time_ms: Option<i64>,
 }
 
 impl HubDatabase {

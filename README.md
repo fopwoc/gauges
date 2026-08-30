@@ -6,6 +6,9 @@ over an enterprise monitoring stack.
 
 ![img.png](.github/assets/img.png)
 
+> [!NOTE]
+> This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
+
 It has two runtime targets and one shared Rust protocol module:
 
 - **probe** — a Rust Linux daemon that samples every 10 seconds, buffers a
@@ -43,9 +46,9 @@ and enables virtual network interfaces so its container `eth0` appears in the
 dashboard. Override the local ports or timing when needed, for example:
 
 ```bash
-GAUGES_LOCAL_PORT=33000 \
-GAUGES_LOCAL_PROBE_COLLECTION_INTERVAL_SECONDS=10 \
-GAUGES_LOCAL_PROBE_RETENTION_HOURS=168 \
+HUB_HTTP_PORT=33000 \
+PROBE_COLLECTION_INTERVAL_SECONDS=10 \
+PROBE_RETENTION_HOURS=168 \
 docker compose -f compose.local.yaml up --build
 ```
 
@@ -109,15 +112,18 @@ Every TOML property has an environment equivalent. For a stateless container,
 the minimum configuration is:
 
 ```bash
-GAUGES_DEVICE_ID=nas \
-GAUGES_TOKEN=replace-me \
-GAUGES_HUB_URL=http://192.168.1.10:8080 \
-GAUGES_DATABASE_PATH=/data/probe.redb \
+DEVICE_ID=nas \
+TOKEN=replace-me \
+HUB_URL=http://192.168.1.10:8080 \
+DATABASE_PATH=/data/probe.redb \
 gauges-probe
 ```
 
-Persist `GAUGES_DATABASE_PATH`; otherwise a container restart necessarily
+Persist `DATABASE_PATH`; otherwise a container restart necessarily
 loses the offline outbox.
+
+`LOG_LEVEL` controls Rust tracing independently of TOML and defaults to
+`error`. Set it to `info` for startup, readiness, and upload lifecycle logs.
 
 The probe image is useful for packaging and container telemetry, but an
 ordinary container sees its own mounts/network namespace and may not have
@@ -198,12 +204,11 @@ GNU Linux metrics. UBIFS is resolved through `/sys/class/ubi` and
 `/sys/class/mtd`; no external `ubinfo` process or UBIFS Rust library is needed.
 Boot filesystems are omitted unless explicitly included. Exact TOML mount-point
 filters remain available as `disk_include` and `disk_exclude` (exclude wins);
-their environment equivalents are `GAUGES_DISK_INCLUDE` and
-`GAUGES_DISK_EXCLUDE`. Set
-`local_filesystems_only = false` or `GAUGES_LOCAL_FILESYSTEMS_ONLY=false` to
-restore sysinfo's broad mounted-filesystem list. `GAUGES_PROC_ROOT` and
-`GAUGES_SYS_ROOT` exist primarily for collector layouts and tests;
-`GAUGES_ETC_ROOT` selects the directory containing host `os-release`.
+their environment equivalents are `DISK_INCLUDE` and `DISK_EXCLUDE`. Set
+`local_filesystems_only = false` or `LOCAL_FILESYSTEMS_ONLY=false` to restore
+sysinfo's broad mounted-filesystem list. `PROC_ROOT` and `SYS_ROOT` exist
+primarily for collector layouts and tests; `ETC_ROOT` selects the directory
+containing host `os-release`.
 
 See [the architecture](docs/architecture.md) and [protocol](docs/protocol.md)
 for the storage and API contracts.

@@ -7,6 +7,7 @@
   import PercentageGauge from './PercentageGauge.svelte';
   import {
     formatBytes,
+    formatCpuModel,
     formatDuration,
     formatRate,
     formatTemperature,
@@ -138,25 +139,31 @@
   {#if latest}
     <section class="live" aria-label="Current machine metrics">
       <div class="gauges">
-        <PercentageGauge
-          label="CPU"
-          value={latest.cpu.usagePercent}
-          detail={formatTemperature(latest.cpu.temperatureCelsius)}
-          meta="processor"
-        />
-        <PercentageGauge
-          label="Memory"
-          value={memoryPercent}
-          detail={`${formatBytes(latest.memory.usedBytes)} used`}
-          meta={formatBytes(latest.memory.totalBytes)}
-        />
-        {#if gpuUsage != null}
+        <div class="gauge-cell">
           <PercentageGauge
-            label={latest.gpus.length > 1 ? `GPU ×${latest.gpus.length}` : 'GPU'}
-            value={gpuUsage}
-            detail={formatTemperature(gpuTemperature)}
-            meta={latest.gpus.length > 1 ? 'highest utilization' : latest.gpus[0]?.device}
+            label="CPU"
+            value={latest.cpu.usagePercent}
+            detail={formatTemperature(latest.cpu.temperatureCelsius)}
+            meta={formatCpuModel(device.identity.cpuModel)}
           />
+        </div>
+        <div class="gauge-cell">
+          <PercentageGauge
+            label="Memory"
+            value={memoryPercent}
+            detail={`${formatBytes(latest.memory.availableBytes)} free`}
+            meta={`${formatBytes(latest.memory.usedBytes)} / ${formatBytes(latest.memory.totalBytes)}`}
+          />
+        </div>
+        {#if gpuUsage != null}
+          <div class="gauge-cell">
+            <PercentageGauge
+              label={latest.gpus.length > 1 ? `GPU ×${latest.gpus.length}` : 'GPU'}
+              value={gpuUsage}
+              detail={formatTemperature(gpuTemperature)}
+              meta={latest.gpus.length > 1 ? 'highest utilization' : latest.gpus[0]?.device}
+            />
+          </div>
         {/if}
       </div>
 
@@ -242,21 +249,23 @@
     transition: border-color var(--dur-short) var(--ease-out), opacity var(--dur-short) var(--ease-out);
   }
   .machine.offline { border-color: var(--color-danger-rule); }
-  .machine-head { min-width: 0; padding: var(--space-sm) var(--space-md); border-bottom: var(--rule-hairline) solid var(--color-rule); }
-  .identity-control { display: grid; width: 100%; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-sm); border: 0; border-radius: var(--radius-control); padding: var(--space-2xs); margin: calc(var(--space-2xs) * -1); background: transparent; text-align: left; cursor: pointer; }
+  .machine-head { min-width: 0; border-bottom: var(--rule-hairline) solid var(--color-rule); }
+  .identity-control { display: grid; width: 100%; min-width: 0; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-sm); border: 0; border-radius: var(--radius-control); padding: var(--space-xs) var(--space-md); background: transparent; text-align: left; cursor: pointer; }
   .identity-control.forced { cursor: default; }
   .identity-control:active:not(.forced) { background: var(--color-paper-3); }
   .identity-copy { display: flex; min-width: 0; flex-direction: column; gap: var(--space-3xs); }
   .identity-meta { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: var(--space-2xs) var(--space-sm); }
   .identity-copy strong { overflow: hidden; color: var(--color-ink); font-family: var(--font-display); font-size: var(--text-base); font-weight: 680; letter-spacing: -0.025em; text-overflow: ellipsis; white-space: nowrap; }
   .identity-copy small { overflow: hidden; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
-  .chevron { width: 0.55rem; height: 0.55rem; margin-inline-end: var(--space-2xs); border-right: var(--rule-strong) solid var(--color-muted); border-bottom: var(--rule-strong) solid var(--color-muted); transform: rotate(45deg); transition: transform var(--dur-short) var(--ease-out); }
+  .chevron { width: 0.55rem; height: 0.55rem; border-right: var(--rule-strong) solid var(--color-muted); border-bottom: var(--rule-strong) solid var(--color-muted); transform: rotate(45deg); transition: transform var(--dur-short) var(--ease-out); }
   .machine.open .chevron { transform: rotate(225deg); }
   .machine-state { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-xs); color: var(--color-danger); font-family: var(--font-mono); font-size: var(--text-xs); white-space: nowrap; }
   .machine-state.online { color: var(--color-accent); }
   .machine-state > i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 var(--space-3xs) color-mix(in oklch, currentColor 16%, transparent); }
   .live { display: grid; min-height: calc(var(--machine-card-collapsed-height) - 3.75rem); grid-template-columns: minmax(17rem, 1.15fr) minmax(16rem, 1fr); gap: var(--space-lg); padding: var(--space-md); }
-  .gauges { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); align-items: start; gap: var(--space-sm); }
+  .gauges { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); align-items: start; gap: var(--space-xs); }
+  .gauge-cell { min-width: 0; }
+  .gauge-cell + .gauge-cell { border-inline-start: var(--rule-hairline) solid var(--color-rule); padding-inline-start: var(--space-xs); }
   .live-details { display: flex; min-width: 0; flex-direction: column; justify-content: center; gap: var(--space-md); border-inline-start: var(--rule-hairline) solid var(--color-rule); padding-inline-start: var(--space-lg); }
   .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: var(--space-md); margin: 0; }
   .numbers div { min-width: 0; }

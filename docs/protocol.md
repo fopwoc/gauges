@@ -30,6 +30,7 @@ buffered samples:
     "distroVersion": "24.10.0",
     "kernelVersion": "6.6.73",
     "ipAddress": "192.168.1.1",
+    "cpuModel": "MediaTek MT7621 ver:1 eco:3",
     "gpuTypes": []
   },
   "retentionHours": 24,
@@ -88,7 +89,7 @@ pools use logical capacity for the aggregate. `ubi` entries use UBIFS capacity a
 eraseblock state plus backing-MTD ECC and bad-block counters when sysfs exposes
 them. No storage health query resets counters or changes kernel state.
 
-`gpuTypes` is a stable, sorted list discovered when the probe starts. NVIDIA
+`cpuModel` and `gpuTypes` are stable hardware names discovered when the probe starts. NVIDIA
 entries use the NVML model name when available; DRM devices use a readable
 vendor/driver type such as `AMD (amdgpu)`. Utilization, temperature, and VRAM
 remain per-sample fields rather than handshake data.

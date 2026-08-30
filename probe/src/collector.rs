@@ -64,7 +64,11 @@ impl MetricsCollector {
         if let Some(nvml) = &self.nvidia {
             gpus.extend(collect_nvidia_gpus(nvml));
         }
-        probe_identity(gpu_type_names(&gpus), &self.etc_root)
+        probe_identity(
+            cpu_model(&self.system),
+            gpu_type_names(&gpus),
+            &self.etc_root,
+        )
     }
 
     pub fn collect(&mut self) -> Result<MetricSample> {
@@ -155,7 +159,11 @@ impl MetricsCollector {
     }
 }
 
-pub fn probe_identity(gpu_types: Vec<String>, etc_root: &Path) -> ProbeIdentity {
+pub fn probe_identity(
+    cpu_model: Option<String>,
+    gpu_types: Vec<String>,
+    etc_root: &Path,
+) -> ProbeIdentity {
     let (distro, distro_version) = distro_identity(etc_root);
     ProbeIdentity {
         hostname: System::host_name().unwrap_or_else(|| "unknown".into()),
@@ -163,8 +171,18 @@ pub fn probe_identity(gpu_types: Vec<String>, etc_root: &Path) -> ProbeIdentity 
         distro_version,
         kernel_version: System::kernel_version().unwrap_or_else(|| "unknown".into()),
         ip_address: local_ip_address::local_ip().ok().map(|ip| ip.to_string()),
+        cpu_model,
         gpu_types,
     }
+}
+
+fn cpu_model(system: &System) -> Option<String> {
+    system
+        .cpus()
+        .first()
+        .map(|cpu| cpu.brand().trim())
+        .filter(|model| !model.is_empty())
+        .map(str::to_owned)
 }
 
 fn distro_identity(etc_root: &Path) -> (String, String) {

@@ -54,7 +54,7 @@ impl Default for ProbeConfig {
 impl ProbeConfig {
     pub fn load() -> Result<Self> {
         let explicit_path = config_path_from_args()?;
-        let environment_path = env::var_os("GAUGES_CONFIG").map(PathBuf::from);
+        let environment_path = env::var_os("CONFIG_PATH").map(PathBuf::from);
         let path_was_requested = explicit_path.is_some() || environment_path.is_some();
         let path = explicit_path
             .or(environment_path)
@@ -76,48 +76,36 @@ impl ProbeConfig {
     }
 
     fn apply_environment(&mut self) -> Result<()> {
-        set_string("GAUGES_DEVICE_ID", &mut self.device_id);
-        set_string("GAUGES_TOKEN", &mut self.token);
-        set_string("GAUGES_HUB_URL", &mut self.hub_url);
-        set_path("GAUGES_DATABASE_PATH", &mut self.database_path);
-        set_path("GAUGES_ETC_ROOT", &mut self.etc_root);
-        set_path("GAUGES_SYS_ROOT", &mut self.sys_root);
-        set_path("GAUGES_PROC_ROOT", &mut self.proc_root);
+        set_string("DEVICE_ID", &mut self.device_id);
+        set_string("TOKEN", &mut self.token);
+        set_string("HUB_URL", &mut self.hub_url);
+        set_path("DATABASE_PATH", &mut self.database_path);
+        set_path("ETC_ROOT", &mut self.etc_root);
+        set_path("SYS_ROOT", &mut self.sys_root);
+        set_path("PROC_ROOT", &mut self.proc_root);
         set_number(
-            "GAUGES_COLLECTION_INTERVAL_SECONDS",
+            "COLLECTION_INTERVAL_SECONDS",
             &mut self.collection_interval_seconds,
         )?;
-        set_number(
-            "GAUGES_RETRY_INTERVAL_SECONDS",
-            &mut self.retry_interval_seconds,
-        )?;
-        set_number("GAUGES_RETENTION_HOURS", &mut self.retention_hours)?;
-        set_number("GAUGES_UPLOAD_BATCH_SIZE", &mut self.upload_batch_size)?;
-        set_number(
-            "GAUGES_REQUEST_TIMEOUT_SECONDS",
-            &mut self.request_timeout_seconds,
-        )?;
-        set_bool(
-            "GAUGES_PHYSICAL_NETWORKS_ONLY",
-            &mut self.physical_networks_only,
-        )?;
-        set_list("GAUGES_NETWORK_INCLUDE", &mut self.network_include);
-        set_list("GAUGES_NETWORK_EXCLUDE", &mut self.network_exclude);
-        set_bool(
-            "GAUGES_LOCAL_FILESYSTEMS_ONLY",
-            &mut self.local_filesystems_only,
-        )?;
-        set_list("GAUGES_DISK_INCLUDE", &mut self.disk_include);
-        set_list("GAUGES_DISK_EXCLUDE", &mut self.disk_exclude);
+        set_number("RETRY_INTERVAL_SECONDS", &mut self.retry_interval_seconds)?;
+        set_number("RETENTION_HOURS", &mut self.retention_hours)?;
+        set_number("UPLOAD_BATCH_SIZE", &mut self.upload_batch_size)?;
+        set_number("REQUEST_TIMEOUT_SECONDS", &mut self.request_timeout_seconds)?;
+        set_bool("PHYSICAL_NETWORKS_ONLY", &mut self.physical_networks_only)?;
+        set_list("NETWORK_INCLUDE", &mut self.network_include);
+        set_list("NETWORK_EXCLUDE", &mut self.network_exclude);
+        set_bool("LOCAL_FILESYSTEMS_ONLY", &mut self.local_filesystems_only)?;
+        set_list("DISK_INCLUDE", &mut self.disk_include);
+        set_list("DISK_EXCLUDE", &mut self.disk_exclude);
         Ok(())
     }
 
     fn validate(&self) -> Result<()> {
         if self.device_id.trim().is_empty() {
-            bail!("device_id is required (or set GAUGES_DEVICE_ID)");
+            bail!("device_id is required (or set DEVICE_ID)");
         }
         if self.token.is_empty() {
-            bail!("token is required (or set GAUGES_TOKEN)");
+            bail!("token is required (or set TOKEN)");
         }
         if !(self.hub_url.starts_with("http://") || self.hub_url.starts_with("https://")) {
             bail!("hub_url must start with http:// or https://");

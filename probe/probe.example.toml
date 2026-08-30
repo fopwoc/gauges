@@ -1,4 +1,4 @@
-# This id must be present in the hub's GAUGES_DEVICES_JSON.
+# This id must be present in the hub's DEVICES_JSON.
 device_id = "router"
 token = "replace-with-a-long-random-token"
 hub_url = "http://192.168.1.10:8080"

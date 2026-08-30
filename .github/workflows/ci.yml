@@ -8,6 +8,9 @@ on:
       - "**/*.md"
       - docs/**
       - LICENSE
+      - COPYRIGHT
+      - AI_USAGE.md
+      - .github/assets/**
   pull_request:
     branches:
       - main
@@ -15,6 +18,9 @@ on:
       - "**/*.md"
       - docs/**
       - LICENSE
+      - COPYRIGHT
+      - AI_USAGE.md
+      - .github/assets/**
 
 permissions:
   contents: read
@@ -27,12 +33,12 @@ jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install GNU probe build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends clang libclang-dev linux-libc-dev
-      - uses: dtolnay/rust-toolchain@1.90
+      - uses: dtolnay/rust-toolchain@1.98.0
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
@@ -58,10 +64,10 @@ jobs:
       run:
         working-directory: console
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.0
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun test
@@ -70,7 +76,7 @@ jobs:
   compose:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: docker compose config --quiet
         env:
-          GAUGES_DEVICES_JSON: '[{"id":"ci","name":"CI device","token":"ci-token"}]'
+          DEVICES_JSON: '[{"id":"ci","name":"CI device","token":"ci-token"}]'

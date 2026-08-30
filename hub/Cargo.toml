@@ -1,10 +1,13 @@
 [package]
 name = "gauges-hub"
-version = "0.1.0"
+version.workspace = true
 description = "Lightweight Gauges collector and console server"
+authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 rust-version.workspace = true
+publish = false
 
 [dependencies]
 anyhow.workspace = true

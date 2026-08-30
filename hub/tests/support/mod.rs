@@ -34,6 +34,7 @@ pub fn test_identity() -> ProbeIdentity {
         distro_version: "3.22".into(),
         kernel_version: "6.12.0".into(),
         ip_address: Some("192.0.2.1".into()),
+        cpu_model: Some("AMD Ryzen 7 5700X 8-Core Processor".into()),
         gpu_types: vec!["AMD (amdgpu)".into(), "NVIDIA GeForce RTX 4090".into()],
     }
 }

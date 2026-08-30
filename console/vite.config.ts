@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [UnoCSS(), sveltekit()],
   server: {
     proxy: {
-      '/api': process.env.GAUGES_DEV_HUB_URL ?? 'http://127.0.0.1:8080',
-      '/health': process.env.GAUGES_DEV_HUB_URL ?? 'http://127.0.0.1:8080'
+      '/api': process.env.DEV_HUB_URL ?? 'http://127.0.0.1:8080',
+      '/health': process.env.DEV_HUB_URL ?? 'http://127.0.0.1:8080'
     }
   }
 });

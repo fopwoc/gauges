@@ -16,7 +16,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Verify release tag and commit
@@ -45,8 +45,8 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-musleabihf
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@1.90
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.98.0
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-          VERSION: ${{ github.ref_name }}
+          BUILD_VERSION: ${{ github.ref_name }}
         run: |
           if [[ "$TARGET" == "x86_64-unknown-linux-gnu" ]]; then
             cargo build --locked --release -p gauges-probe --target "$TARGET"
@@ -72,12 +72,14 @@ jobs:
             cross build --locked --release -p gauges-probe --target "$TARGET"
           fi
 
-          package="gauges-probe-${VERSION}-${TARGET}"
+          package="gauges-probe-${BUILD_VERSION}-${TARGET}"
           install -Dm755 "target/${TARGET}/release/gauges-probe" "${package}/gauges-probe"
           install -Dm644 probe/probe.example.toml "${package}/probe.example.toml"
           install -Dm644 deploy/gauges-probe.service "${package}/gauges-probe.service"
           install -Dm755 deploy/openwrt/gauges-probe.init "${package}/gauges-probe.init"
           install -Dm644 LICENSE "${package}/LICENSE"
+          install -Dm644 COPYRIGHT "${package}/COPYRIGHT"
+          install -Dm644 AI_USAGE.md "${package}/AI_USAGE.md"
           tar -czf "${package}.tar.gz" "$package"
           sha256sum "${package}.tar.gz" > "${package}.tar.gz.sha256"
       - uses: actions/upload-artifact@v7
@@ -106,7 +108,7 @@ jobs:
             context: .
             file: ./Dockerfile
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -129,6 +131,8 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            BUILD_VERSION=${{ github.ref_name }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
@@ -141,7 +145,7 @@ jobs:
       actions: read
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v8

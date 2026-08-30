@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use gauges_shared::{
-    DEVICE_ID_HEADER, INGEST_PATH, IngestRequest, IngestResponse, MetricSample, ProbeIdentity,
+    BUILD_VERSION, DEVICE_ID_HEADER, INGEST_PATH, IngestRequest, IngestResponse, MetricSample,
+    ProbeIdentity,
 };
 use reqwest::{Client, StatusCode};
 
@@ -19,7 +20,7 @@ impl HubClient {
     pub fn new(config: &ProbeConfig) -> Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(config.request_timeout_seconds))
-            .user_agent(concat!("gauges-probe/", env!("CARGO_PKG_VERSION")))
+            .user_agent(format!("gauges-probe/{BUILD_VERSION}"))
             .build()?;
         Ok(Self {
             client,

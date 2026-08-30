@@ -4,8 +4,11 @@ resolver = "2"
 
 [workspace.package]
 edition = "2024"
-license = "MIT"
-rust-version = "1.90"
+version = "0.0.0"
+authors = ["Ilya Dobryakov"]
+license = "WTFNMFPL"
+repository = "https://github.com/fopwoc/gauges"
+rust-version = "1.98"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -14,13 +17,13 @@ http-body-util = "0.1"
 redb = "4.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 subtle = "2"
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
 tower = { version = "0.5", features = ["util"] }
-tower-http = { version = "0.6", features = ["fs", "trace"] }
+tower-http = { version = "0.7", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 

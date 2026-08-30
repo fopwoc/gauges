@@ -1,20 +1,32 @@
-use std::sync::Arc;
+use std::{process::ExitCode, sync::Arc};
 
 use anyhow::{Context, Result};
 use gauges_hub::{HubConfig, HubDatabase, router, system_clock};
+use gauges_shared::BUILD_VERSION;
 use tokio::signal::unix::{SignalKind, signal};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| "gauges_hub=error".into()),
+            EnvFilter::try_from_env("LOG_LEVEL").unwrap_or_else(|_| EnvFilter::new("error")),
         )
         .compact()
         .init();
-    info!("starting Gauges hub");
+
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            error!(error = ?error, "Gauges hub stopped unexpectedly");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn run() -> Result<()> {
+    info!(version = BUILD_VERSION, "starting Gauges hub");
 
     let config = HubConfig::from_environment().context("failed to load hub configuration")?;
     info!(
@@ -68,9 +80,22 @@ async fn main() -> Result<()> {
 }
 
 async fn shutdown_signal() {
-    let mut terminate = signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
+    let mut terminate = match signal(SignalKind::terminate()) {
+        Ok(signal) => signal,
+        Err(error) => {
+            error!(%error, "failed to install SIGTERM handler");
+            if let Err(error) = tokio::signal::ctrl_c().await {
+                error!(%error, "failed to wait for Ctrl-C");
+            }
+            return;
+        }
+    };
     tokio::select! {
-        _ = tokio::signal::ctrl_c() => {}
+        result = tokio::signal::ctrl_c() => {
+            if let Err(error) = result {
+                error!(%error, "failed to wait for Ctrl-C");
+            }
+        }
         _ = terminate.recv() => {}
     }
 }

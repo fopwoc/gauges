@@ -4,6 +4,7 @@ import {
   findMissingIntervals,
   formatBytes,
   formatCompactNumber,
+  formatCpuModel,
   formatDuration,
   formatRate,
   mergeSamples,
@@ -35,6 +36,13 @@ describe('metric helpers', () => {
     expect(formatRate(1_000_000)).toBe('8 Mb/s');
     expect(formatCompactNumber(10_000)).toBe('10k');
     expect(formatCompactNumber(1_000_000)).toBe('1m');
+  });
+
+  test('formats CPU names for compact card headers', () => {
+    expect(formatCpuModel('AMD Ryzen 7 5700X 8-Core Processor')).toBe('Ryzen 7 5700X');
+    expect(formatCpuModel('Intel(R) Core(TM) i5-12400 CPU @ 2.50GHz')).toBe('Intel Core i5-12400');
+    expect(formatCpuModel('AMD Ryzen 5 5600G with Radeon Graphics')).toBe('Ryzen 5 5600G');
+    expect(formatCpuModel(null)).toBeUndefined();
   });
 
   test('summarizes storage pools and identifies the fullest pool', () => {

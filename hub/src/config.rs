@@ -29,34 +29,30 @@ impl HubConfig {
 
     pub fn from_map(environment: &BTreeMap<String, String>) -> Result<Self> {
         Ok(Self {
-            host: non_empty(environment, "GAUGES_HOST").unwrap_or_else(|| "0.0.0.0".into()),
-            port: positive(environment, "GAUGES_PORT", 8_080)?,
-            database_path: non_empty(environment, "GAUGES_DATABASE_PATH")
+            host: non_empty(environment, "HTTP_HOST").unwrap_or_else(|| "0.0.0.0".into()),
+            port: positive(environment, "HTTP_PORT", 8_080)?,
+            database_path: non_empty(environment, "DATABASE_PATH")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| "/data/gauges.redb".into()),
-            console_path: non_empty(environment, "GAUGES_CONSOLE_PATH")
+            console_path: non_empty(environment, "CONSOLE_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| "/opt/gauges/console".into()),
             devices: parse_devices(
                 environment
-                    .get("GAUGES_DEVICES_JSON")
-                    .context("GAUGES_DEVICES_JSON is required")?,
+                    .get("DEVICES_JSON")
+                    .context("DEVICES_JSON is required")?,
             )?,
             cleanup_interval: Duration::from_secs(positive(
                 environment,
-                "GAUGES_CLEANUP_INTERVAL_SECONDS",
+                "CLEANUP_INTERVAL_SECONDS",
                 60_u64,
             )?),
             online_threshold: Duration::from_secs(positive(
                 environment,
-                "GAUGES_ONLINE_THRESHOLD_SECONDS",
+                "ONLINE_THRESHOLD_SECONDS",
                 30_u64,
             )?),
-            max_ingest_batch_size: positive(
-                environment,
-                "GAUGES_MAX_INGEST_BATCH_SIZE",
-                512_usize,
-            )?,
+            max_ingest_batch_size: positive(environment, "MAX_INGEST_BATCH_SIZE", 512_usize)?,
         })
     }
 }
@@ -70,10 +66,10 @@ struct DeviceConfigEntry {
 
 fn parse_devices(value: &str) -> Result<BTreeMap<String, ConfiguredDevice>> {
     let entries: Vec<DeviceConfigEntry> =
-        serde_json::from_str(value).context("GAUGES_DEVICES_JSON must be a valid JSON array")?;
+        serde_json::from_str(value).context("DEVICES_JSON must be a valid JSON array")?;
     ensure!(
         !entries.is_empty(),
-        "GAUGES_DEVICES_JSON must contain at least one device"
+        "DEVICES_JSON must contain at least one device"
     );
 
     let mut devices = BTreeMap::new();
@@ -100,7 +96,7 @@ fn parse_devices(value: &str) -> Result<BTreeMap<String, ConfiguredDevice>> {
             )
             .is_some()
         {
-            bail!("duplicate device id in GAUGES_DEVICES_JSON: {id}");
+            bail!("duplicate device id in DEVICES_JSON: {id}");
         }
     }
     Ok(devices)
@@ -144,7 +140,7 @@ mod tests {
     #[test]
     fn loads_defaults_and_devices() {
         let config = HubConfig::from_map(&BTreeMap::from([(
-            "GAUGES_DEVICES_JSON".into(),
+            "DEVICES_JSON".into(),
             r#"[{"id":"server-a","name":"Server A","token":"secret"},{"id":"router","name":"Router","token":"base64=="}]"#.into(),
         )]))
         .unwrap();
@@ -158,7 +154,7 @@ mod tests {
     #[test]
     fn rejects_duplicate_devices() {
         let result = HubConfig::from_map(&BTreeMap::from([(
-            "GAUGES_DEVICES_JSON".into(),
+            "DEVICES_JSON".into(),
             r#"[{"id":"server-a","name":"One","token":"one"},{"id":"server-a","name":"Two","token":"two"}]"#.into(),
         )]));
 

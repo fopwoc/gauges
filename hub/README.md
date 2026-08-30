@@ -10,16 +10,17 @@ The hub is configured only through environment variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `GAUGES_DEVICES_JSON` | required | JSON array of `{\"id\",\"name\",\"token\"}` objects |
-| `GAUGES_DATABASE_PATH` | `/data/gauges.redb` | redb database file |
-| `GAUGES_CONSOLE_PATH` | `/opt/gauges/console` | Compiled Console directory |
-| `GAUGES_HOST` | `0.0.0.0` | Bind address |
-| `GAUGES_PORT` | `8080` | HTTP port |
-| `GAUGES_CLEANUP_INTERVAL_SECONDS` | `60` | Cleanup cadence |
-| `GAUGES_ONLINE_THRESHOLD_SECONDS` | `30` | Minimum grace since the last upload before a device can be offline |
-| `GAUGES_MAX_INGEST_BATCH_SIZE` | `512` | Maximum samples per upload |
+| `DEVICES_JSON` | required | JSON array of `{\"id\",\"name\",\"token\"}` objects |
+| `DATABASE_PATH` | `/data/gauges.redb` | redb database file |
+| `CONSOLE_DIR` | `/opt/gauges/console` | Compiled Console directory |
+| `HTTP_HOST` | `0.0.0.0` | Bind address |
+| `HTTP_PORT` | `8080` | HTTP port |
+| `CLEANUP_INTERVAL_SECONDS` | `60` | Cleanup cadence |
+| `ONLINE_THRESHOLD_SECONDS` | `30` | Minimum grace since the last upload before a device can be offline |
+| `MAX_INGEST_BATCH_SIZE` | `512` | Maximum samples per upload |
+| `LOG_LEVEL` | `error` | Tracing filter, such as `info` or `gauges_hub=debug` |
 
-Example: `GAUGES_DEVICES_JSON='[{\"id\":\"router\",\"name\":\"Router\",\"token\":\"change-me\"}]'`.
+Example: `DEVICES_JSON='[{\"id\":\"router\",\"name\":\"Router\",\"token\":\"change-me\"}]'`.
 Device IDs may contain only letters, digits, periods, underscores, and hyphens.
 
 ## HTTP API

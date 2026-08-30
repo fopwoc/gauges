@@ -29,7 +29,7 @@ bun run dev
 ```
 
 The Vite development server proxies `/api` and `/health` to
-`http://127.0.0.1:8080`. Set `GAUGES_DEV_HUB_URL` to use another development
+`http://127.0.0.1:8080`. Set `DEV_HUB_URL` to use another development
 Hub.
 
 Useful checks:

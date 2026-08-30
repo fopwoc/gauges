@@ -1,10 +1,13 @@
 [package]
 name = "gauges-shared"
-version = "0.1.0"
+version.workspace = true
 description = "Shared Gauges wire protocol"
+authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 rust-version.workspace = true
+publish = false
 
 [dependencies]
 serde.workspace = true
