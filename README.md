@@ -1,5 +1,7 @@
 # Gauges
 
+[![Build](https://github.com/fopwoc/gauges/actions/workflows/ci.yml/badge.svg)](https://github.com/fopwoc/gauges/actions/workflows/ci.yml)
+
 Gauges is a tiny home-lab dashboard: roughly “neofetch through `watch`, but for
 all the Linux boxes on the LAN.” It favors a small understandable deployment
 over an enterprise monitoring stack.
