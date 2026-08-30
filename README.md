@@ -6,10 +6,34 @@ Gauges is a tiny home-lab dashboard: roughly “neofetch through `watch`, but fo
 all the Linux boxes on the LAN.” It favors a small understandable deployment
 over an enterprise monitoring stack.
 
-![img.png](.github/assets/img.png)
+| Small cards                   | Machine details               |
+|-------------------------------|-------------------------------|
+| ![](.github/assets/img_2.png) | ![](.github/assets/img_1.png) |
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
+
+## Idle footprint
+
+Result of some real world profiling
+
+| Component       |       RAM avg | CPU, 30 s avg (1 core) | redb logical / allocated |
+|-----------------|--------------:|-----------------------:|-------------------------:|
+| Hub (Docker)    |      64.4 MiB |                ~0.083% |    64.25 MiB / 55.61 MiB |
+| Linux x86 probe |     36.25 MiB |                ~0.081% |         288 KiB / 64 KiB |
+| OpenWrt probe   |      4.37 MiB |                ~0.067% |         288 KiB / 64 KiB |
+
+Profiling context:
+
+- The hub and Linux x86 probe run on the same Ryzen 7 5700X host. The hub runs in Docker; the probe runs as a systemd service.
+- The OpenWrt reference device is an OpenWrt One router. Its probe runs as a procd service.
+- Both probers does report every 10 seconds.
+- 1 hour of profiling.
+
+redb files are sparse, so their allocated size—not their larger logical size—is
+the actual disk consumption. These are idle observations, not load-test results.
+
+## Runtime shape
 
 It has two runtime targets and one shared Rust protocol module:
 
