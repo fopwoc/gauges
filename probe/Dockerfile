@@ -12,7 +12,7 @@ COPY probe ./probe
 RUN cargo build --locked --release -p gauges-probe
 
 FROM alpine:3.24
-RUN apk add --no-cache ca-certificates \
+RUN apk add --no-cache ca-certificates smartmontools \
     && addgroup -S gauges \
     && adduser -S -G gauges -h /var/lib/gauges gauges \
     && mkdir -p /var/lib/gauges \

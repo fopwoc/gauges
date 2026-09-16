@@ -191,7 +191,10 @@
     const palette = [
       cssToken('--color-chart-1'),
       cssToken('--color-chart-2'),
-      cssToken('--color-chart-3')
+      cssToken('--color-chart-3'),
+      cssToken('--color-chart-4'),
+      cssToken('--color-chart-5'),
+      cssToken('--color-chart-6')
     ];
     const fills = [
       cssToken('--color-chart-1-fill'),
@@ -434,7 +437,7 @@
     <div class="readout" aria-live="off">
       <div class="values">
         {#each series as item, index (item.label)}
-          <span><i class:secondary={index > 0}></i>{item.label} <strong>{shownValue(item, index)}</strong></span>
+          <span><i style={`background-color: var(--color-chart-${index % 6 + 1})`}></i>{item.label} <strong>{shownValue(item, index)}</strong></span>
         {/each}
       </div>
       <time>{shownTime()}</time>
@@ -459,7 +462,6 @@
   /* Hallmark · component: fixed-window telemetry chart · genre: modern-minimal · theme: Cobalt */
   .chart-card {
     min-width: 0;
-    height: 16.625rem;
     overflow: hidden;
     border: var(--rule-hairline) solid var(--color-rule);
     border-radius: var(--radius-control);
@@ -468,7 +470,7 @@
   .chart-card.offline { border-color: var(--color-danger-rule); }
   header {
     display: grid;
-    height: 3.75rem;
+    min-height: 3.75rem;
     grid-template-columns: minmax(5.625rem, 0.55fr) minmax(0, 1fr);
     align-items: start;
     gap: var(--space-sm);
@@ -481,7 +483,6 @@
   .values { display: flex; min-height: 1rem; flex-wrap: wrap; align-content: start; justify-content: flex-end; gap: var(--space-3xs) var(--space-sm); }
   .values span { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); white-space: nowrap; }
   .values i { width: var(--space-xs); height: var(--rule-strong); border-radius: var(--radius-mark); background: var(--color-chart-1); }
-  .values i.secondary { background: var(--color-chart-2); }
   .values strong { color: var(--color-ink); font-size: var(--text-xs); font-variant-numeric: tabular-nums; font-weight: 650; }
   time { min-height: 1em; font-variant-numeric: tabular-nums; }
   .chart-shell { position: relative; height: 11rem; overflow: hidden; border-top: var(--rule-hairline) solid var(--color-paper-3); }
@@ -500,8 +501,7 @@
     footer button:hover { background: var(--color-paper-2); }
   }
   @media (max-width: 32.5rem) {
-    header { height: 5.5rem; grid-template-columns: 1fr; gap: var(--space-3xs); overflow: hidden; }
-    .chart-card { height: 18.375rem; }
+    header { min-height: 5.5rem; grid-template-columns: 1fr; gap: var(--space-3xs); }
     .chart-shell, .chart { height: 11rem; }
     .readout { text-align: left; }
     .values { justify-content: flex-start; }

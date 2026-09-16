@@ -114,7 +114,7 @@ Build on a Linux machine for its native target:
 
 ```bash
 # Debian/Ubuntu build dependency for btrfs-uapi's generated kernel bindings:
-sudo apt-get install clang libclang-dev linux-libc-dev
+sudo apt-get install clang libclang-dev linux-libc-dev smartmontools
 cargo build --locked --release -p gauges-probe
 sudo install -m 0755 target/release/gauges-probe /usr/local/bin/
 sudo install -d /etc/gauges
@@ -207,6 +207,9 @@ Currently collected:
   member capacity, allocation profiles, and read-only allocation/device-error
   ioctls on GNU Linux; a root partition rolls up to its whole backing disk,
   while a multi-device pool contributes its logical usable capacity;
+- per-drive temperatures from Linux `drivetemp` and NVMe hwmon sensors when
+  exposed, shown together in one chart; readings are unavailable when the
+  sensor or `drivetemp` kernel module is absent;
 - UBIFS volumes with UBI eraseblock health and backing NAND ECC/bad-block
   counters read directly from sysfs on OpenWrt;
 - byte totals and calculated rates for physical NICs (or explicit overrides);
@@ -217,9 +220,17 @@ Currently collected:
 - distro, version, kernel, hostname, current local IP, and detected GPU types
   in the handshake data.
 
-SMART health is not in v1. It normally requires the privileged `smartctl`
-command, would be expensive to invoke every 10 seconds, and is not consistently
-present on OpenWrt. Its absence never blocks the common metrics pipeline.
+For Btrfs member drives, the probe checks `smartctl` overall SMART health at
+most once every 30 minutes per drive and shows passed, failed, standby, or
+unavailable beside the Btrfs device-error total. Standby and unavailable are
+retried after five minutes. It checks one drive per collection cycle, with a
+three-second command timeout, and skips drives in standby when `smartctl` can
+detect that state. The host needs `smartctl` and access to the block devices;
+unsupported or inaccessible devices report unavailable. A passed overall check
+does not rule out other drive problems. Linux `drivetemp` may use a SMART
+temperature attribute internally. Reading it can reset the spin-down timer on
+some drives, so those drives may need a longer collection interval. Missing
+temperature or SMART health never blocks the common metrics pipeline.
 
 Storage filtering reads Linux mount metadata from `/proc/self/mountinfo` and
 normally requires a matching `/sys/dev/block/<major>:<minor>` entry. Btrfs uses

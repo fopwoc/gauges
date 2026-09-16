@@ -1,5 +1,5 @@
 import type { CpuMetric, GpuMetric, MemoryMetric, NetworkMetric } from './system';
-import type { StorageMetric } from './storage';
+import type { DriveTemperatureMetric, StorageMetric } from './storage';
 
 export interface MetricSample {
   sampleId: string;
@@ -7,6 +7,7 @@ export interface MetricSample {
   cpu: CpuMetric;
   memory: MemoryMetric;
   storage: StorageMetric[];
+  driveTemperatures?: DriveTemperatureMetric[];
   networks: NetworkMetric[];
   gpus: GpuMetric[];
   powerWatts: number | null;

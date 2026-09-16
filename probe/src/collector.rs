@@ -15,7 +15,10 @@ use sysinfo::{Components, Networks, System};
 use tracing::{debug, error};
 use uuid::Uuid;
 
-use crate::{config::ProbeConfig, storage::StorageCollector};
+use crate::{
+    config::ProbeConfig, drive_temperature, smart_health::SmartHealthCollector,
+    storage::StorageCollector,
+};
 
 pub struct MetricsCollector {
     system: System,
@@ -29,6 +32,7 @@ pub struct MetricsCollector {
     power: PowerCollector,
     nvidia: Option<Nvml>,
     storage: StorageCollector,
+    smart_health: SmartHealthCollector,
 }
 
 impl MetricsCollector {
@@ -56,6 +60,7 @@ impl MetricsCollector {
             power: PowerCollector::default(),
             nvidia,
             storage: StorageCollector::new(config),
+            smart_health: SmartHealthCollector::default(),
         }
     }
 
@@ -95,15 +100,21 @@ impl MetricsCollector {
             gpus.extend(collect_nvidia_gpus(nvml));
         }
 
+        let captured_at_ms = unix_time_ms()?;
+        let mut storage = self.storage.collect();
+        self.smart_health
+            .collect(&mut storage, &self.sys_root, captured_at_ms);
+
         Ok(MetricSample {
             sample_id: Uuid::new_v4().to_string(),
-            captured_at_ms: unix_time_ms()?,
+            captured_at_ms,
             cpu: CpuMetric {
                 usage_percent: self.system.global_cpu_usage(),
                 temperature_celsius: cpu_temperature(),
             },
             memory,
-            storage: self.storage.collect(),
+            storage,
+            drive_temperatures: drive_temperature::collect(&self.sys_root),
             networks,
             gpus,
             power_watts: self.power.read_watts(&self.sys_root),

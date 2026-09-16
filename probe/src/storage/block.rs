@@ -22,6 +22,25 @@ pub(super) fn storage_owner(snapshot: &FilesystemSnapshot, sys_root: &Path) -> O
         .or_else(|| partition_parent_name(&block))
 }
 
+pub(crate) fn whole_device_name(device: &str, sys_root: &Path) -> Option<String> {
+    let path = sys_root.join("class/block").join(device);
+    if !path.exists() {
+        return None;
+    }
+    if !path.join("partition").exists() {
+        return Some(device.to_owned());
+    }
+    fs::canonicalize(path)
+        .ok()
+        .and_then(|path| {
+            path.parent()
+                .and_then(Path::file_name)
+                .map(|name| name.to_string_lossy().into_owned())
+        })
+        .filter(|parent| parent != "block")
+        .or_else(|| partition_parent_name(device))
+}
+
 pub(super) fn block_device_name(snapshot: &FilesystemSnapshot, sys_root: &Path) -> Option<String> {
     if let Some(mount) = &snapshot.mount {
         let path = sys_root

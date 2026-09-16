@@ -22,6 +22,7 @@ function sample(sampleId: string, capturedAtMs: number): MetricSample {
     cpu: { usagePercent: 0, temperatureCelsius: null },
     memory: { totalBytes: 0, usedBytes: 0, availableBytes: 0, swapTotalBytes: 0, swapUsedBytes: 0 },
     storage: [],
+    driveTemperatures: [],
     networks: [],
     gpus: [],
     powerWatts: null,

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM oven/bun:1.4.0-alpine AS console-build
+FROM oven/bun:1.4.2-alpine AS console-build
 WORKDIR /source/console
 COPY console/package.json console/bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile

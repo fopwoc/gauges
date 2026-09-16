@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct DriveTemperatureMetric {
+    pub device: String,
+    pub temperature_celsius: f32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageCommon {
     pub id: String,
     pub label: String,
@@ -53,6 +60,8 @@ pub enum StorageMetric {
         allocated_bytes: Option<u64>,
         allocation_used_bytes: Option<u64>,
         device_errors: Option<BtrfsDeviceErrorMetric>,
+        #[serde(default)]
+        smart_health: Vec<SmartDeviceHealthMetric>,
     },
     Ubi {
         #[serde(flatten)]
@@ -91,6 +100,24 @@ pub struct BtrfsDeviceErrorMetric {
     pub flush: u64,
     pub corruption: u64,
     pub generation: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartDeviceHealthMetric {
+    pub device: String,
+    pub status: SmartHealthStatus,
+    pub checked_at_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum SmartHealthStatus {
+    Pending,
+    Passed,
+    Failed,
+    Standby,
+    Unavailable,
 }
 
 impl BtrfsDeviceErrorMetric {

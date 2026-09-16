@@ -16,6 +16,11 @@ export interface StorageCommon {
   fullestFilesystem: FilesystemConstraintMetric | null;
 }
 
+export interface DriveTemperatureMetric {
+  device: string;
+  temperatureCelsius: number;
+}
+
 export type DiskStorageMetric = StorageCommon & {
   kind: 'disk';
   device: string;
@@ -36,6 +41,12 @@ export interface BtrfsDeviceErrorMetric {
   generation: number;
 }
 
+export interface SmartDeviceHealthMetric {
+  device: string;
+  status: 'pending' | 'passed' | 'failed' | 'standby' | 'unavailable';
+  checkedAtMs: number | null;
+}
+
 export type BtrfsStorageMetric = StorageCommon & {
   kind: 'btrfs';
   uuid: string;
@@ -47,6 +58,7 @@ export type BtrfsStorageMetric = StorageCommon & {
   allocatedBytes: number | null;
   allocationUsedBytes: number | null;
   deviceErrors: BtrfsDeviceErrorMetric | null;
+  smartHealth?: SmartDeviceHealthMetric[];
 };
 
 export interface MtdHealthMetric {

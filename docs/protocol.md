@@ -67,6 +67,7 @@ buffered samples:
           "fileSystems": ["ext4"]
         }
       ],
+      "driveTemperatures": [{ "device": "nvme0n1", "temperatureCelsius": 38.5 }],
       "networks": [],
       "gpus": [],
       "powerWatts": null,
@@ -88,6 +89,18 @@ capacity while preserving the filesystem value in `logicalBytes`; multi-device
 pools use logical capacity for the aggregate. `ubi` entries use UBIFS capacity and add UBI
 eraseblock state plus backing-MTD ECC and bad-block counters when sysfs exposes
 them. No storage health query resets counters or changes kernel state.
+
+`driveTemperatures` is an optional per-sample list of whole block devices with
+readable Linux `drivetemp` or NVMe hwmon sensors. Values are degrees Celsius;
+missing sensors are omitted. Btrfs `deviceErrors` sums persistent read, write,
+flush, corruption, and generation mismatch counters across pool members. It is
+filesystem error history, not a SMART health status.
+
+Btrfs entries may also include `smartHealth`, a per-whole-drive list of
+`{device, status, checkedAtMs}`. Status is `pending`, `passed`, `failed`,
+`standby`, or `unavailable`; `checkedAtMs` is null while pending. The probe
+caches the most recent SMART check rather than
+querying drives at every sample; older entries without this field are valid.
 
 `cpuModel` and `gpuTypes` are stable hardware names discovered when the probe starts. NVIDIA
 entries use the NVML model name when available; DRM devices use a readable

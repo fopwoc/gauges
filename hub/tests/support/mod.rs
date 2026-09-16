@@ -73,6 +73,7 @@ pub fn test_sample(id: &str, captured_at_ms: i64) -> MetricSample {
             device: "sda".into(),
             file_systems: vec!["ext4".into()],
         }],
+        drive_temperatures: Vec::new(),
         networks: vec![NetworkMetric {
             interface: "eth0".into(),
             received_bytes_per_second: 1_024.0,

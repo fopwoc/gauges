@@ -79,6 +79,7 @@ pub(super) fn collect(
         allocated_bytes: ioctl.as_ref().map(|metrics| metrics.allocated_bytes),
         allocation_used_bytes: ioctl.as_ref().map(|metrics| metrics.used_bytes),
         device_errors: ioctl.and_then(|metrics| metrics.device_errors),
+        smart_health: Vec::new(),
     }
 }
 
