@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM rust:1.98.0-alpine AS build
+FROM rust:1.98.1-alpine AS build
 WORKDIR /source
 ARG BUILD_VERSION
 ENV BUILD_VERSION=$BUILD_VERSION

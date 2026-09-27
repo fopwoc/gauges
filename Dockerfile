@@ -6,7 +6,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lock
 COPY console ./
 RUN bun run build
 
-FROM rust:1.98.0-alpine AS hub-build
+FROM rust:1.98.1-alpine AS hub-build
 WORKDIR /source
 ARG BUILD_VERSION
 ENV BUILD_VERSION=$BUILD_VERSION
