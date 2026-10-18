@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
-FROM oven/bun:1.4.2-alpine AS console-build
+FROM oven/bun:1.4.3-alpine AS console-build
 WORKDIR /source/console
 COPY console/package.json console/bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 COPY console ./
 RUN bun run build
 
-FROM rust:1.98.0-alpine AS hub-build
+FROM rust:1.99.0-alpine AS hub-build
 WORKDIR /source
 ARG BUILD_VERSION
 ENV BUILD_VERSION=$BUILD_VERSION
