@@ -20,7 +20,7 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 rustix = { version = "1", features = ["fs"] }
 serde.workspace = true
 serde_json.workspace = true
-sysinfo = { version = "0.39", default-features = false, features = ["system", "disk", "network", "component"] }
+sysinfo = { version = "0.40", default-features = false, features = ["system", "disk", "network", "component"] }
 tokio.workspace = true
 toml = "1.1"
 tracing.workspace = true
